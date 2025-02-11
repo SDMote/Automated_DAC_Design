@@ -1,0 +1,66 @@
+** sch_path: /foss/designs/dac/rdac_tb.sch
+**.subckt rdac_tb vout vss d0 d1 d2 vdd
+*.iopin vout
+*.iopin vss
+*.iopin d0
+*.iopin d1
+*.iopin d2
+*.iopin vdd
+x1 vdd d0 vout d1 d2 vss rdac
+**** begin user architecture code
+
+
+.lib /foss/pdks/ihp-sg13g2/libs.tech/ngspice/models/cornerMOSlv.lib mos_tt
+.lib /foss/pdks/ihp-sg13g2/libs.tech/ngspice/models/cornerRES.lib res_typ
+
+Vdd vdd 0 1.2
+Vss vss 0 0
+Vd0 d0 0 PULSE(0 1.2 0 1n 1n 125n 250n)
+Vd1 d1 0 PULSE(0 1.2 0 1n 1n 250n 500n )
+Vd2 d2 0 PULSE(0 1.2 0 1n 1n 500n 1000n)
+
+.control
+save v(d0) v(d1) v(d2) v(vout)
+tran 0.001 1000n
+plot v(d0) v(d1) v(d2) v(vout)
+.endc
+
+
+**** end user architecture code
+**.ends
+
+* expanding   symbol:  rdac.sym # of pins=6
+** sym_path: /foss/designs/dac/rdac.sym
+** sch_path: /foss/designs/dac/rdac.sch
+.subckt rdac vdd d0 vout d1 d2 vss
+*.iopin vout
+*.iopin vdd
+*.iopin d0
+*.iopin vss
+*.iopin d1
+*.iopin d2
+x1 vdd d0 net5 vss inverter
+x2 vdd d1 net4 vss inverter
+x3 vdd d2 net1 vss inverter
+XR1 vout net1 rhigh w=0.5e-6 l=10.0e-6 m=1 b=0
+XR2 net2 net4 rhigh w=0.5e-6 l=10.0e-6 m=1 b=0
+XR3 net3 net5 rhigh w=0.5e-6 l=10.0e-6 m=1 b=0
+XR4 net3 vss rhigh w=0.5e-6 l=10.0e-6 m=1 b=0
+XR5 net2 vout rhigh w=0.5e-6 l=5.0e-6 m=1 b=0
+XR6 net3 net2 rhigh w=0.5e-6 l=5.0e-6 m=1 b=0
+.ends
+
+
+* expanding   symbol:  inverter.sym # of pins=4
+** sym_path: /foss/designs/dac/inverter.sym
+** sch_path: /foss/designs/dac/inverter.sch
+.subckt inverter vdd vin vout vss
+*.iopin vout
+*.iopin vss
+*.iopin vin
+*.iopin vdd
+XM1 vss vin vout vss sg13_lv_nmos w=1.5u l=0.13u ng=1 m=1
+XM2 vout vin vdd vdd sg13_lv_pmos w=3.0u l=0.13u ng=1 m=1
+.ends
+
+.end

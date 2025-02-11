@@ -1,0 +1,12 @@
+*.svg
+*.png
+*.eps
+*.osdi
+*.log
+*.pdf
+*.txt
+*.zip
+
+# Tools
+simulations
+

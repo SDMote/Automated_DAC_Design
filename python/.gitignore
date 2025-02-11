@@ -1,0 +1,10 @@
+*.spice
+*.va
+*test*
+
+# Tools
+simulations
+
+# Python
+__pycache__/
+
