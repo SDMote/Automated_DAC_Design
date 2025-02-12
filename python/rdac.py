@@ -4,11 +4,12 @@
 # 
 # ============================================================================
 
+import user
 import pdk
 from utils import net
 from inverter import inverter
 
-def rdac(N, Wn, Wp, Lr=pdk.MIN_RES_L):
+def rdac(N, Wn, Wp, M=1, Lr=pdk.MIN_RES_L):
     """Generates SPICE of RDAC, including SPICE for the inverter.
     N: bits of resolution.
     Wn: width of inverter NMOS.
@@ -16,8 +17,8 @@ def rdac(N, Wn, Wp, Lr=pdk.MIN_RES_L):
     Lr: lenght of RDAC unit resistor.
     return: string with RDAC ports.
     """
-    inverter(Wn, Wp)
-    fp = open("rdac.spice", "w")
+    inverter(Wn, Wp, Mn=M, Mp=M)
+    fp = open("sim/rdac.spice", "w")
     fp.write("** Resistive ladder DAC **\n")
     fp.write("\n")
     fp.write(".include \"inverter.spice\"\n")
@@ -47,10 +48,11 @@ def rdac(N, Wn, Wp, Lr=pdk.MIN_RES_L):
 def adc_va(N: int):
     """Generates Verilog-A module for N bit ADC.
     """
+    # Verilog-A model
     ports = "out0"
     for i in range(1,N):
         ports = ports + ", out" + str(i)
-    fp = open("adc.va", "w")
+    fp = open("sim/adc_model.va", "w")
     fp.write("`include \"constants.h\"\n")
     fp.write("`include \"discipline.h\"\n")
     fp.write("\n")
@@ -58,7 +60,7 @@ def adc_va(N: int):
     fp.write("\tinput in ;\n")
     fp.write("\toutput "+ports+" ;\n")
     fp.write("\telectrical in, "+ports+" ;\n")
-    fp.write("\tparameter real vlow = 0, vhigh = 1.2 ;\n")
+    fp.write("\tparameter real vlow = 0, vhigh = "+str(pdk.LOW_VOLTAGE)+" ;\n")
     fp.write("\tinteger sample ;\n")
     fp.write("\n")
     fp.write("\tanalog begin\n")
@@ -68,6 +70,25 @@ def adc_va(N: int):
     fp.write("\tend\n")
     fp.write("endmodule\n")
     fp.close()
+    # Spice subcircuit
+    ports = "" 
+    for i in range(N):
+        ports = ports + " out" + str(i)
+    fp = open("sim/adc_model.spice", "w")
+    fp.write("** Verilog-A modeled ADC **\n")
+    fp.write("\n")
+    fp.write(".model adc_model adc_va ;\n")
+    fp.write("\n")
+    fp.write(".subckt adc in"+ports+"\n")
+    fp.write("\tnadc in"+ports+" adc_model\n")
+    fp.write(".ends\n")
+    fp.write("\n")
+    fp.write(".control\n")
+    fp.write("\tpre_osdi adc_model.osdi\n")
+    fp.write(".endc\n")
+    fp.write("\n")
+    fp.write(".end\n")
+    fp.close()
     return
 
 
@@ -76,42 +97,35 @@ def rdac_tb(N: int, dut_spice="rdac.spice"):
     N: bits of resolution.
     dut_spice: name of the SPICE file with the inverter to be tested.
     """
+    adc_va(N)
+    lsb = pdk.LOW_VOLTAGE/2**N
     ports = ""
     for i in range(N):
         ports = ports + " d" + str(i)
-    fp = open("rdac_tb.spice", "w")
+    fp = open("sim/rdac_tb.spice", "w")
     fp.write("** Resistive ladder DAC testbench **\n")
     fp.write("\n")
     fp.write(pdk.LIB_MOS_TT)
     fp.write(pdk.LIB_RES_T)
     fp.write(".include \""+dut_spice+"\"\n")
+    fp.write(".include \"adc_model.spice\"\n")
     fp.write("\n")
     fp.write("x1 vss vdd" + ports + " vout rdac\n")
+    fp.write("x2 vin" + ports + " adc\n")
     fp.write("\n")
-    fp.write("Vdd vdd 0 1.2\n")
+    fp.write("Vdd vdd 0 "+str(pdk.LOW_VOLTAGE)+"\n")
     fp.write("Vss vss 0 0\n")
+    fp.write("Vin vin 0 0\n")
     signals = ""
     for i in range(N):
-        t = 2**i * 10
+        #t = 2**i * 10
         signals = signals + " v(d" + str(i) + ")"
-        fp.write("Vd"+str(i)+" d"+str(i)+" 0 dc 0 PULSE(0 1.2 0 1n 1n "+str(t-1)+"n "+str(2*t)+"n)\n")
+        #fp.write("Vd"+str(i)+" d"+str(i)+" 0 dc 0 PULSE(0 1.2 0 1n 1n "+str(t-1)+"n "+str(2*t)+"n)\n")
     fp.write("\n")
     fp.write(".control\n")
-    fp.write("save" + signals + " v(vout)\n")
-    fp.write("tran 0.001 "+str(2**N * 10)+"n\n")
-    fp.write("wrdata /foss/designs/dac/python/rdac_tran.txt" + signals + " v(vout)\n")
-    fp.write("\n")
-    fp.write("setplot const\n")
-    fp.write("let i = 0\n")
-    fp.write("repeat "+str(2**N)+"\n")
-    for i in range(N):
-        fp.write(" alter Vd"+str(i)+" {$&i / "+str(2**i)+" % 2 * 1.2}\n")
-    fp.write(" op\n")
-    fp.write(" wrdata /foss/designs/dac/python/rdac_op.txt vout\n")
-    fp.write(" set appendwrite\n")
-    fp.write(" let i = i + 1\n")
-    fp.write("end\n")
-    fp.write("\n")
+    fp.write("save v(vin)" + signals + " v(vout)\n")
+    fp.write("dc Vin "+str(lsb/2)+" "+str(pdk.LOW_VOLTAGE)+" "+str(lsb)+"\n")
+    fp.write("wrdata "+user.SIM_PATH+"rdac_dc.txt vout\n")
     fp.write(".endc\n")
     fp.write("\n")
     fp.write(".end\n")
@@ -122,20 +136,20 @@ def rdac_tb(N: int, dut_spice="rdac.spice"):
 def resistor_tb(L=pdk.MIN_RES_L):
     """Generates SPICE testbench for N mosfet.
     """
-    fp = open("resistor_tb.spice", "w")
+    fp = open("sim/resistor_tb.spice", "w")
     fp.write("** Resistor testbench **\n")
     fp.write("\n")
     fp.write(pdk.LIB_RES_T)
     fp.write("\n")
     fp.write("XR1 vn vp rhigh w=0.5u l="+str(L)+"u m=1 b=0\n")
     fp.write("\n")
-    fp.write("Vp vp 0 1.2\n")
+    fp.write("Vp vp 0 "+str(pdk.LOW_VOLTAGE)+"\n")
     fp.write("Vn vn 0 0\n")
     fp.write("\n")
     fp.write(".control\n")
     fp.write("save v(vp) v(vn) @vn[i]\n")
     fp.write("op\n")
-    fp.write("wrdata /foss/designs/dac/python/resistor_op.txt @vn[i]\n")
+    fp.write("wrdata "+user.SIM_PATH+"resistor_op.txt @vn[i]\n")
     fp.write(".endc\n")
     fp.write("\n")
     fp.write(".end\n")

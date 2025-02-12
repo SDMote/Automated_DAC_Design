@@ -5,15 +5,15 @@
 # ============================================================================
 
 
-RESOLUTION = 9
+RESOLUTION = 8
 L_RES = 5.0
 W_NMOS = 6.0
-VDD = 1.2
 
 # ============================================================================
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pdk
 
 R = 3020*L_RES
 Rn = 2745/W_NMOS
@@ -44,7 +44,7 @@ for i in range(RESOLUTION):
         r_4[i] = r_2[i]
     else:
         r_4[i] = r_2[i]*r_3[i]/(r_2[i] + r_3[i])
-    voltages[i] = VDD * k[i] * r_4[i]/(r_4[i] + r_1)
+    voltages[i] = pdk.LOW_VOLTAGE * k[i] * r_4[i]/(r_4[i] + r_1)
 
 transfer_function = np.zeros(2**RESOLUTION)
 for i in range(2**RESOLUTION):
@@ -52,8 +52,8 @@ for i in range(2**RESOLUTION):
         transfer_function[i] = transfer_function[i] + ((i//2**j)%2)*voltages[j]
 
 digital_input = np.arange(2**RESOLUTION)
-lsb = VDD/(2**RESOLUTION)
-tfunction_ref = digital_input * VDD / 2**RESOLUTION
+lsb = pdk.LOW_VOLTAGE/(2**RESOLUTION)
+tfunction_ref = digital_input * pdk.LOW_VOLTAGE / 2**RESOLUTION
 inl = (transfer_function - tfunction_ref)/lsb
 dnl = (transfer_function[1:] - transfer_function[:2**RESOLUTION-1] - lsb)/lsb
 
@@ -70,5 +70,4 @@ axs[1].legend()
 axs[1].grid()
 axs[0].set_title("Resistive DAC with "+str(RESOLUTION)+" bits of resolution")
 plt.show(block=False)
-
 
