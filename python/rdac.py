@@ -4,12 +4,13 @@
 # 
 # ============================================================================
 
+import numpy as np
 import user
 import pdk
 from utils import net
 from inverter import inverter
 
-def rdac(N, Wn, Wp, M=1, Lr=pdk.MIN_RES_L):
+def rdac(N, Wn, Wp, M=1, Lr=pdk.RES_MIN_L):
     """Generates SPICE of RDAC, including SPICE for the inverter.
     N: bits of resolution.
     Wn: width of inverter NMOS.
@@ -47,6 +48,7 @@ def rdac(N, Wn, Wp, M=1, Lr=pdk.MIN_RES_L):
 
 def adc_va(N: int):
     """Generates Verilog-A module for N bit ADC.
+    N: bits of resolution.
     """
     # Verilog-A model
     ports = "out0"
@@ -92,10 +94,11 @@ def adc_va(N: int):
     return
 
 
-def rdac_tb(N: int, dut_spice="rdac.spice"):
+def rdac_tb(N: int, dut_spice="rdac.spice", debug=False):
     """Generates SPICE testbench for RDAC.
     N: bits of resolution.
     dut_spice: name of the SPICE file with the inverter to be tested.
+    debug: when True, testbench saves internal voltages and currents.
     """
     adc_va(N)
     lsb = pdk.LOW_VOLTAGE/2**N
@@ -124,8 +127,24 @@ def rdac_tb(N: int, dut_spice="rdac.spice"):
     fp.write("\n")
     fp.write(".control\n")
     fp.write("save v(vin)" + signals + " v(vout)\n")
+    if debug:
+        nodes = ""
+        currents = ""
+        voltages = ""
+        for i in range(N):
+            nodes = nodes + " x1.net" + str(i+1)
+            currents = currents + " @n.x1.x"+str(i+1)+".xm1.nsg13_lv_nmos[ids] @n.x1.x"+str(i+1)+".xm2.nsg13_lv_pmos[ids]"
+            voltages = voltages + " @n.x1.x"+str(i+1)+".xm1.nsg13_lv_nmos[vds] @n.x1.x"+str(i+1)+".xm2.nsg13_lv_pmos[vds]"
+        fp.write("save" + nodes + "\n")
+        fp.write("save" + currents + "\n")
+        fp.write("save" + voltages + "\n")
     fp.write("dc Vin "+str(lsb/2)+" "+str(pdk.LOW_VOLTAGE)+" "+str(lsb)+"\n")
-    fp.write("wrdata "+user.SIM_PATH+"rdac_dc.txt vout\n")
+    if debug:
+        fp.write("wrdata "+user.SIM_PATH+"rdac_dc.txt vout"+nodes+"\n")
+        fp.write("wrdata "+user.SIM_PATH+"rdac_ids.txt"+currents+"\n")
+        fp.write("wrdata "+user.SIM_PATH+"rdac_vds.txt"+voltages+"\n")
+    else:
+        fp.write("wrdata "+user.SIM_PATH+"rdac_dc.txt vout\n")
     fp.write(".endc\n")
     fp.write("\n")
     fp.write(".end\n")
@@ -133,8 +152,9 @@ def rdac_tb(N: int, dut_spice="rdac.spice"):
     return
 
 
-def resistor_tb(L=pdk.MIN_RES_L):
+def resistor_tb(L=pdk.RES_MIN_L):
     """Generates SPICE testbench for N mosfet.
+    L: resistor lenght.
     """
     fp = open("sim/resistor_tb.spice", "w")
     fp.write("** Resistor testbench **\n")
@@ -157,5 +177,51 @@ def resistor_tb(L=pdk.MIN_RES_L):
     return
 
 
+def estimate_rdac_nl(N: int, R, Rn, Rp):
+    """Estimate RDAC nonlinearities.
+    N: bits of resolution.
+    R: RDAC unit resistance.
+    Rn: NMOS on resistance.
+    Rp: PMOS on resistance.
+    return: INL, DNL arrays of size 2^N and 2^N-1 (normalized to LSB).
+    """
+    digital_input = np.arange(2**N)
+    lsb = pdk.LOW_VOLTAGE/(2**N)
+    transfer_function_ref = digital_input * pdk.LOW_VOLTAGE / 2**N
 
+    r_1 = 2*R + Rp
+    r_2 = np.zeros(N)
+    r_3 = np.zeros(N)
+    r_4 = np.zeros(N)
+    k = np.zeros(N)
+    temp = 2*R + Rn
+
+    r_3[N-1] = float('inf')
+    r_3[N-2] = 3*R + Rn
+    k[N-1] = 1
+    k[N-2] = temp / (temp + R)
+    voltages = np.zeros(N)
+    for i in range(N-3, -1, -1):
+        temp2 = temp*r_3[i+1]/(temp + r_3[i+1])
+        r_3[i] = R + temp2
+        k[i] = k[i+1] * temp2/r_3[i]
+    for i in range(N):
+        if i == 0:
+            r_2[0] = 2*R
+        else:
+            r_2[i] = R + temp*r_2[i-1]/(temp + r_2[i-1])
+        if i == N-1:
+            r_4[i] = r_2[i]
+        else:
+            r_4[i] = r_2[i]*r_3[i]/(r_2[i] + r_3[i])
+        voltages[i] = pdk.LOW_VOLTAGE * k[i] * r_4[i]/(r_4[i] + r_1)
+
+    transfer_function = np.zeros(2**N)
+    for i in range(2**N):
+        for j in range(N):
+            transfer_function[i] = transfer_function[i] + ((i//2**j)%2)*voltages[j]
+
+    inl = (transfer_function - transfer_function_ref)/lsb
+    dnl = (transfer_function[1:] - transfer_function[:2**N-1] - lsb)/lsb
+    return inl, dnl
 

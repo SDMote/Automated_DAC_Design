@@ -7,7 +7,7 @@
 import user
 import pdk
 
-def inverter(Wn=pdk.MIN_MOS_W, Wp=pdk.MIN_MOS_W, Ln=pdk.MIN_MOS_L, Lp=pdk.MIN_MOS_L, Mn=1, Mp=1):
+def inverter(Wn=pdk.MOS_MIN_W, Wp=pdk.MOS_MIN_W, Ln=pdk.MOS_MIN_L, Lp=pdk.MOS_MIN_L, Mn=1, Mp=1):
     """Generates SPICE testbench for inverter.
     Wn: NmOS width.
     Wp: PMOS width.
@@ -55,7 +55,7 @@ def inverter_tb(dut_spice="inverter.spice"):
     return
 
 
-def nmos_tb(W, NG=1, L=pdk.MIN_MOS_L, M=1):
+def nmos_tb(W, NG=1, L=pdk.MOS_MIN_L, M=1, VDS=pdk.LOW_VOLTAGE):
     """Generates SPICE testbench for N mosfet.
     """
     fp = open("sim/nmos_tb.spice", "w")
@@ -65,7 +65,7 @@ def nmos_tb(W, NG=1, L=pdk.MIN_MOS_L, M=1):
     fp.write("\n")
     fp.write("XM1 vs vg vd vs sg13_lv_nmos w="+str(W)+"u l="+str(L)+"u ng="+str(NG)+" m="+str(M)+"\n")
     fp.write("\n")
-    fp.write("Vd vd 0 "+str(pdk.LOW_VOLTAGE)+"\n")
+    fp.write("Vd vd 0 "+str(VDS)+"\n")
     fp.write("Vs vs 0 0\n")
     fp.write("Vg vg 0 "+str(pdk.LOW_VOLTAGE)+"\n")
     fp.write("\n")
@@ -80,7 +80,7 @@ def nmos_tb(W, NG=1, L=pdk.MIN_MOS_L, M=1):
     return
 
 
-def pmos_tb(W, NG=1, L=pdk.MIN_MOS_L, M=1):
+def pmos_tb(W, NG=1, L=pdk.MOS_MIN_L, M=1, VDS=pdk.LOW_VOLTAGE):
     """Generates SPICE testbench for P mosfet.
     """
     fp = open("sim/pmos_tb.spice", "w")
@@ -90,7 +90,7 @@ def pmos_tb(W, NG=1, L=pdk.MIN_MOS_L, M=1):
     fp.write("\n")
     fp.write("XM1 vd vg vs vs sg13_lv_pmos w="+str(W)+"u l="+str(L)+"u ng="+str(NG)+" m="+str(M)+"\n")
     fp.write("\n")
-    fp.write("Vd vd 0 0\n")
+    fp.write("Vd vd 0 "+str(pdk.LOW_VOLTAGE-VDS)+"\n")
     fp.write("Vs vs 0 "+str(pdk.LOW_VOLTAGE)+"\n")
     fp.write("Vg vg 0 0\n")
     fp.write("\n")

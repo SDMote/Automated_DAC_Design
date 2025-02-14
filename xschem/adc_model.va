@@ -1,0 +1,17 @@
+`include "constants.h"
+`include "discipline.h"
+
+module adc_va(in, out0, out1, out2) ;
+	input in ;
+	output out0, out1, out2 ;
+	electrical in, out0, out1, out2 ;
+	parameter real vlow = 0, vhigh = 1.2 ;
+	integer sample ;
+
+	analog begin
+		sample = floor( 8 * V(in) / vhigh ) ;
+		V(out0) <+ (sample & 1)? vhigh : vlow ;
+		V(out1) <+ (sample & 2)? vhigh : vlow ;
+		V(out2) <+ (sample & 4)? vhigh : vlow ;
+	end
+endmodule

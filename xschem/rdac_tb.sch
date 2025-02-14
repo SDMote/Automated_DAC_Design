@@ -14,29 +14,23 @@ C {iopin.sym} -140 -180 3 0 {name=p8 lab=vdd}
 C {code_shown.sym} 20 -370 0 0 {name=s1 only_toplevel=false value="
 .lib /foss/pdks/ihp-sg13g2/libs.tech/ngspice/models/cornerMOSlv.lib mos_tt
 .lib /foss/pdks/ihp-sg13g2/libs.tech/ngspice/models/cornerRES.lib res_typ
+.include "../adc_model.spice"
+
+x2 vin d0 d1 d2 adc
 
 Vdd vdd 0 1.2
 Vss vss 0 0
-Vd0 d0 0 dc 0 PULSE(0 1.2 0 2n 2n 100n 200n)
-Vd1 d1 0 dc 0 PULSE(0 1.2 0 2n 2n 200n 400n)
-Vd2 d2 0 dc 0 PULSE(0 1.2 0 2n 2n 400n 800n)
+Vin vin 0 dc 0 SIN(0.6 0.6 1000000)
 
 .control
-save v(d0) v(d1) v(d2) v(vout)
-tran 0.001 1000n
-plot v(d0) v(d1) v(d2) v(vout)
+save v(vin) v(d0) v(d1) v(d2) v(vout)
 
-setplot const
-let i = 0
-repeat 8
- alter Vd0 \{$&i / 1 % 2 * 1.2\}
- alter Vd1 \{$&i / 2 % 2 * 1.2\}
- alter Vd2 \{$&i / 4 % 2 * 1.2\}
- op
- wrdata /foss/designs/dac/python/rdac_dc.txt i vout
- set appendwrite
- let i = i + 1
-end
+tran 0.001 2u
+plot v(vin) v(d0) v(d1) v(d2) v(vout)
+
+*setplot const
+*dc Vin 0.075 1.2 0.15
+*plot v(vout)
 
 .endc
 "

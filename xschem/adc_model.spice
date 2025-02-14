@@ -1,0 +1,13 @@
+** Verilog-A modeled ADC **
+
+.model adc_model adc_va ;
+
+.subckt adc in out0 out1 out2
+	nadc in out0 out1 out2 adc_model
+.ends
+
+.control
+	pre_osdi ../adc_model.osdi
+.endc
+
+.end
