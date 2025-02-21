@@ -1,0 +1,15 @@
+*.svg
+*.png
+*.eps
+*.osdi
+*.log
+*.pdf
+*.txt
+*.zip
+*.gds
+*.cir
+*.ext
+*.spice
+
+test*
+

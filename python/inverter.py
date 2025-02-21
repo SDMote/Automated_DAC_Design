@@ -7,7 +7,7 @@
 import user
 import pdk
 
-def inverter(Wn=pdk.MOS_MIN_W, Wp=pdk.MOS_MIN_W, Ln=pdk.MOS_MIN_L, Lp=pdk.MOS_MIN_L, Mn=1, Mp=1):
+def inverter(Wn=pdk.MOS_MIN_W, Wp=pdk.MOS_MIN_W, Ln=pdk.MOS_MIN_L, Lp=pdk.MOS_MIN_L, Mn=1, Mp=1, NGn=1, NGp=1):
     """Generates SPICE testbench for inverter.
     Wn: NmOS width.
     Wp: PMOS width.
@@ -18,8 +18,8 @@ def inverter(Wn=pdk.MOS_MIN_W, Wp=pdk.MOS_MIN_W, Ln=pdk.MOS_MIN_L, Lp=pdk.MOS_MI
     fp.write("** Inverter **\n")
     fp.write("\n")
     fp.write(".subckt inverter vss vdd vin vout\n")
-    fp.write("XM1 vss vin vout vss sg13_lv_nmos w="+str(Wn)+"u l="+str(Ln)+"u ng=1 m="+str(Mn)+"\n")
-    fp.write("XM2 vout vin vdd vdd sg13_lv_pmos w="+str(Wp)+"u l="+str(Lp)+"u ng=1 m="+str(Mp)+"\n")
+    fp.write("XM1 vss vin vout vss sg13_lv_nmos w="+str(Wn)+"u l="+str(Ln)+"u ng="+str(NGn)+" m="+str(Mn)+"\n")
+    fp.write("XM2 vout vin vdd vdd sg13_lv_pmos w="+str(Wp)+"u l="+str(Lp)+"u ng="+str(NGp)+" m="+str(Mp)+"\n")
     fp.write(".ends\n")
     fp.write("\n")
     fp.write(".end\n")
@@ -47,7 +47,7 @@ def inverter_tb(dut_spice="inverter.spice"):
     fp.write(".control\n")
     fp.write("save v(vin) v(vout)\n")
     fp.write("tran 0.001 1000n\n")
-    fp.write("wrdata "+user.SIM_PATH+"inverter_tran.txt v(vin) v(vout)\n")
+    fp.write("wrdata "+user.SIM_PATH+"/inverter_tran.txt v(vin) v(vout)\n")
     fp.write(".endc\n")
     fp.write("\n")
     fp.write(".end\n")
@@ -72,7 +72,7 @@ def nmos_tb(W, NG=1, L=pdk.MOS_MIN_L, M=1, VDS=pdk.LOW_VOLTAGE):
     fp.write(".control\n")
     fp.write("save v(vg) v(vd) @n.xm1.nsg13_lv_nmos[ids]\n")
     fp.write("op\n")
-    fp.write("wrdata "+user.SIM_PATH+"nmos_op.txt @n.xm1.nsg13_lv_nmos[ids]\n")
+    fp.write("wrdata "+user.SIM_PATH+"/nmos_op.txt @n.xm1.nsg13_lv_nmos[ids]\n")
     fp.write(".endc\n")
     fp.write("\n")
     fp.write(".end\n")
@@ -97,7 +97,7 @@ def pmos_tb(W, NG=1, L=pdk.MOS_MIN_L, M=1, VDS=pdk.LOW_VOLTAGE):
     fp.write(".control\n")
     fp.write("save v(vg) v(vd) @n.xm1.nsg13_lv_pmos[ids]\n")
     fp.write("op\n")
-    fp.write("wrdata "+user.SIM_PATH+"pmos_op.txt @n.xm1.nsg13_lv_pmos[ids]\n")
+    fp.write("wrdata "+user.SIM_PATH+"/pmos_op.txt @n.xm1.nsg13_lv_pmos[ids]\n")
     fp.write(".endc\n")
     fp.write("\n")
     fp.write(".end\n")

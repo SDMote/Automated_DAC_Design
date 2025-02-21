@@ -30,5 +30,5 @@ RES_MIN_W = 0.5
 RES_MIN_L = 0.5
 
 
-LIB_MOS_TT = ".lib "+user.PDK_ROOT+"libs.tech/ngspice/models/cornerMOSlv.lib mos_tt\n"
-LIB_RES_T = ".lib "+user.PDK_ROOT+"libs.tech/ngspice/models/cornerRES.lib res_typ\n"
+LIB_MOS_TT = ".lib "+user.PDKPATH+"/libs.tech/ngspice/models/cornerMOSlv.lib mos_tt\n"
+LIB_RES_T = ".lib "+user.PDKPATH+"/libs.tech/ngspice/models/cornerRES.lib res_typ\n"

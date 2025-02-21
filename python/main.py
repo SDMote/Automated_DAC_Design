@@ -15,6 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
 import pdk
+import user
 from utils import read_data
 from rdac import rdac, rdac_tb, resistor_tb, estimate_rdac_nl
 from inverter import inverter, inverter_tb, nmos_tb, pmos_tb
@@ -95,3 +96,21 @@ print('Simulated\tINL=', max(abs(inl)), '\tDNL=', max(abs(dnl)))
 #         ready = True
 #     else:
 #         mos_resistance = mos_resistance / 2
+
+
+## here set layout generator parameters to match simulated circuit
+
+# call layout generation with klayout
+subprocess.run("klayout -zz -r ../klayout/python/rdac_bit.py -j ../klayout/", shell=True, check=True) 
+
+
+NMOS_W = 2.0
+MOS_NG = 2
+PMOS_W = 2.5*NMOS_W
+inverter(NMOS_W, PMOS_W, NGn=MOS_NG, NGp=MOS_NG)
+
+# Extract spice netlist from GDS
+subprocess.run("magic -rcfile "+user.MAGICRC_PATH+" -noconsole -nowrapper ../magic/extract_rdac.tcl", shell=True, check=True)
+
+# Perform LVS
+subprocess.run("netgen -batch lvs \"../magic/TOP.spice TOP\" \"sim/inverter.spice inverter\" "+user.NETGEN_SETUP+" ../netgen/comp.out", shell=True, check=True)

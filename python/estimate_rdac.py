@@ -5,7 +5,7 @@
 # ============================================================================
 
 
-RESOLUTION = 8
+RESOLUTION = 10
 RES_L = 10.0
 NMOS_W = 0.2
 MOS_M = 6
@@ -19,7 +19,7 @@ import pdk
 import user
 from utils import read_data, net
 from inverter import nmos_tb, pmos_tb
-from rdac import resistor_tb
+from rdac import resistor_tb, estimate_rdac_nl
 
 # W_PMOS = 2.5*W_NMOS
 # resistor_tb(L_RES)
@@ -40,42 +40,42 @@ R = 3020*RES_L
 Rn = 520.9 #2730/(W_NMOS*M_MOS)
 Rp = 613.4 #5851/(W_PMOS*M_MOS)
 
-digital_input = np.arange(2**RESOLUTION)
-lsb = pdk.LOW_VOLTAGE/(2**RESOLUTION)
-transfer_function_ref = digital_input * pdk.LOW_VOLTAGE / 2**RESOLUTION
+N = 2**RESOLUTION
+digital_input = np.arange(N)
+lsb = pdk.LOW_VOLTAGE/N
+transfer_function_ref = digital_input * pdk.LOW_VOLTAGE / N
 
-N = RESOLUTION
-voltages = np.zeros(N)
-for j in range(N):
+voltages = np.zeros(RESOLUTION)
+for j in range(RESOLUTION):
     fp = open("sim/rdac_tb.spice", "w")
     fp.write("** Resistive ladder DAC **\n")
     fp.write("\n")
     fp.write(pdk.LIB_RES_T)
     fp.write("\n")
     fp.write("XR1 0 net1 rhigh w=0.5u l="+str(2*RES_L)+"u m=1 b=0\n")
-    for i in range(N-2):
+    for i in range(RESOLUTION-2):
         fp.write("XR"+str(i+2)+net(i+1)+net(i+2)+" rhigh w=0.5u l="+str(RES_L)+"u m=1 b=0\n")
-    fp.write("XR"+str(N)+" net"+str(N-1)+" vout rhigh w=0.5u l="+str(RES_L)+"u m=1 b=0\n")
-    for i in range(N-1):
-        fp.write("XR"+str(N+i+1)+net(i+1)+net(N+i)+" rhigh w=0.5u l="+str(2*RES_L)+"u m=1 b=0\n")
+    fp.write("XR"+str(RESOLUTION)+" net"+str(RESOLUTION-1)+" vout rhigh w=0.5u l="+str(RES_L)+"u m=1 b=0\n")
+    for i in range(RESOLUTION-1):
+        fp.write("XR"+str(RESOLUTION+i+1)+net(i+1)+net(RESOLUTION+i)+" rhigh w=0.5u l="+str(2*RES_L)+"u m=1 b=0\n")
         if i == j:
-            fp.write("R"+str(i)+" d"+str(i)+net(N+i)+" "+str(Rp)+"\n")
+            fp.write("R"+str(i)+" d"+str(i)+net(RESOLUTION+i)+" "+str(Rp)+"\n")
             fp.write("Vd"+str(i)+" d"+str(i)+" 0 "+str(pdk.LOW_VOLTAGE)+"\n")
         else:
-            fp.write("R"+str(i)+" d"+str(i)+net(N+i)+" "+str(Rn)+"\n")
+            fp.write("R"+str(i)+" d"+str(i)+net(RESOLUTION+i)+" "+str(Rn)+"\n")
             fp.write("Vd"+str(i)+" d"+str(i)+" 0 0\n")
-    fp.write("XR"+str(2*N)+" vout"+net(2*N-1)+" rhigh w=0.5u l="+str(2*RES_L)+"u m=1 b=0\n")
-    if j == N-1:
-        fp.write("R"+str(N-1)+" d"+str(N-1)+net(2*N-1)+" "+str(Rp)+"\n")
-        fp.write("Vd"+str(N-1)+" d"+str(N-1)+" 0 "+str(pdk.LOW_VOLTAGE)+"\n")
+    fp.write("XR"+str(2*RESOLUTION)+" vout"+net(2*RESOLUTION-1)+" rhigh w=0.5u l="+str(2*RES_L)+"u m=1 b=0\n")
+    if j == RESOLUTION-1:
+        fp.write("R"+str(RESOLUTION-1)+" d"+str(RESOLUTION-1)+net(2*RESOLUTION-1)+" "+str(Rp)+"\n")
+        fp.write("Vd"+str(RESOLUTION-1)+" d"+str(RESOLUTION-1)+" 0 "+str(pdk.LOW_VOLTAGE)+"\n")
     else:
-        fp.write("R"+str(N-1)+" d"+str(N-1)+net(2*N-1)+" "+str(Rn)+"\n")
-        fp.write("Vd"+str(N-1)+" d"+str(N-1)+" 0 0\n")
+        fp.write("R"+str(RESOLUTION-1)+" d"+str(RESOLUTION-1)+net(2*RESOLUTION-1)+" "+str(Rn)+"\n")
+        fp.write("Vd"+str(RESOLUTION-1)+" d"+str(RESOLUTION-1)+" 0 0\n")
     fp.write("\n")
     fp.write(".control\n")
     fp.write("save v(vout)\n")
     fp.write("op\n")
-    fp.write("wrdata "+user.SIM_PATH+"rdac_op.txt vout\n")
+    fp.write("wrdata "+user.SIM_PATH+"/rdac_op.txt vout\n")
     fp.write(".endc\n")
     fp.write("\n")
     fp.write(".end\n")
@@ -87,13 +87,13 @@ for j in range(N):
 
 print(voltages)
 
-transfer_function = np.zeros(2**RESOLUTION)
-for i in range(2**RESOLUTION):
+transfer_function = np.zeros(N)
+for i in range(N):
     for j in range(RESOLUTION):
         transfer_function[i] = transfer_function[i] + ((i//2**j)%2)*voltages[j]
 
 inl = (transfer_function - transfer_function_ref)/lsb
-dnl = (transfer_function[1:] - transfer_function[:2**RESOLUTION-1] - lsb)/lsb
+dnl = (transfer_function[1:] - transfer_function[:N-1] - lsb)/lsb
 
 r_1 = 2*R + Rp
 r_2 = np.zeros(RESOLUTION)
@@ -122,31 +122,52 @@ for i in range(RESOLUTION):
         r_4[i] = r_2[i]*r_3[i]/(r_2[i] + r_3[i])
     voltages2[i] = pdk.LOW_VOLTAGE * k[i] * r_4[i]/(r_4[i] + r_1)
 
-transfer_function2 = np.zeros(2**RESOLUTION)
-for i in range(2**RESOLUTION):
+transfer_function2 = np.zeros(N)
+for i in range(N):
     for j in range(RESOLUTION):
         transfer_function2[i] = transfer_function2[i] + ((i//2**j)%2)*voltages2[j]
 
 inl2 = (transfer_function2 - transfer_function_ref)/lsb
-dnl2 = (transfer_function2[1:] - transfer_function2[:2**RESOLUTION-1] - lsb)/lsb
+dnl2 = (transfer_function2[1:] - transfer_function2[:N-1] - lsb)/lsb
 
 print("R:\t\t", R, "Ohm")
 print("Rn:\t\t", Rn, "Ohm")
 print("Rp:\t\t", Rp, "Ohm")
 
-fig, axs = plt.subplots(2, 1, sharex=True)
-axs[0].plot(digital_input, transfer_function, '-o', label='transfer function')
+# fig, axs = plt.subplots(2, 1, sharex=True)
+# axs[0].plot(digital_input, transfer_function, '-o', label='transfer function')
 # axs[0].plot(digital_input, transfer_function2, '-o', label='transfer function 2')
-axs[0].plot(digital_input, transfer_function_ref, '-', label='reference')
-axs[0].set_ylabel("Operating point\nVout (V)")
-axs[0].legend()
-axs[0].grid()
-axs[1].plot(digital_input, inl, '-', label='INL')
-axs[1].plot(digital_input[1:], dnl, '-', label='DNL')
+# axs[0].plot(digital_input, transfer_function_ref, '-', label='reference')
+# axs[0].set_ylabel("Operating point\nVout (V)")
+# axs[0].legend()
+# axs[0].grid()
+# axs[1].plot(digital_input, inl, '-', label='INL')
+# axs[1].plot(digital_input[1:], dnl, '-', label='DNL')
 # axs[1].plot(digital_input, inl2, '-', label='INL 2')
 # axs[1].plot(digital_input[1:], dnl2, '-', label='DNL 2')
-axs[1].set_ylabel("INL and DNL\nDeviation (LSB)")
+# axs[1].set_ylabel("INL and DNL\nDeviation (LSB)")
+# axs[1].legend()
+# axs[1].grid()
+# axs[0].set_title("Resistive DAC with "+str(RESOLUTION)+" bits of resolution")
+# plt.show()
+
+R1 = 500
+R2 = 250
+inl, dnl = estimate_rdac_nl(RESOLUTION, R, R1, R1)
+inl2, dnl2 = estimate_rdac_nl(RESOLUTION, R, R2, R2)
+
+
+fig, axs = plt.subplots(2, 1, sharex=True)
+axs[0].plot(digital_input, inl, '-', label='Rn=Rp=500')
+axs[0].plot(digital_input, inl2, '-', label='Rn=Rp=250')
+axs[0].set_ylabel("INL (LSB)")
+axs[0].legend()
+axs[0].grid()
+axs[1].plot(digital_input[1:], dnl, '-', label='Rn=Rp=500')
+axs[1].plot(digital_input[1:], dnl2, '-', label='Rn=Rp=250')
+axs[1].set_ylabel("DNL (LSB)")
 axs[1].legend()
 axs[1].grid()
-axs[0].set_title("Resistive DAC with "+str(RESOLUTION)+" bits of resolution")
+axs[1].set_xlabel("Code")
+axs[0].set_title("Nonlinearity estimations with "+str(RESOLUTION)+" bits of resolution")
 plt.show()
