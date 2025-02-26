@@ -1,6 +1,6 @@
 # ============================================================================
 # PDK constants: IHP sg13g2
-# Alfonso Cortés - Inria AIO
+# Alfonso Cortes - Inria AIO
 # 
 # ============================================================================
 
@@ -9,6 +9,8 @@ import user
 LOW_VOLTAGE = 1.2
 HIGH_VOLTAGE = 3.3
 
+
+## DRC
 MOS_MIN_W = 0.15
 MOS_MIN_L = 0.13
 LVNMOS_MIN_W = MOS_MIN_W
@@ -30,5 +32,6 @@ RES_MIN_W = 0.5
 RES_MIN_L = 0.5
 
 
+## Models
 LIB_MOS_TT = ".lib "+user.PDKPATH+"/libs.tech/ngspice/models/cornerMOSlv.lib mos_tt\n"
 LIB_RES_T = ".lib "+user.PDKPATH+"/libs.tech/ngspice/models/cornerRES.lib res_typ\n"

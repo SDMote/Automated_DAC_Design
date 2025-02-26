@@ -1,13 +1,13 @@
 # ============================================================================
-# Extract spice netlist from GDS
-# Alfonso Cortes - Inria AIO
-# 
+# DAC layout parameters
+#
 # ============================================================================
 
-cd ../magic
-gds read ../klayout/rdac_bit.gds
-load TOP
-extract
-ext2spice lvs
-ext2spice
-exit
+NMOS_W      = 6
+PMOS_W      = 12
+N_GATES     = 10
+MOS_LENGHT  = 0.13
+POLY_WIDTH  = 0.13
+RES_LENGHT  = 6.0
+RES_LAYOUT  = 1
+
