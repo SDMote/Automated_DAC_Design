@@ -16,15 +16,15 @@ import subprocess
 RES_W = RHIa
 
 # subprocess.run("klayout -zz -r ../klayout/python/inverter.py -j ../klayout/", shell=True, check=True) 
-# subprocess.run("klayout -zz -r ../klayout/python/r2r.py -j ../klayout/", shell=True, check=True)
+# subprocess.run("klayout -zz -r ../klayout/python/r2r_ladder.py -j ../klayout/", shell=True, check=True)
 
 ## Initialize layout
 layout = kl.Layout()                            # create Layout (layout containing cell hierarchy, including cells and instances)
 layout.dbu = pdk.DBU                            # set database unit
 layout.read("../klayout/inverter.gds")          # load inverter GDS
 inverter_cell = layout.cell("inverter")
-layout.read("../klayout/r2r.gds")               # load R-2R GDS
-r2r_cell = layout.cell("r2r")
+layout.read("../klayout/r2r_bit_i.gds")               # load R-2R GDS
+r2r_cell = layout.cell("r2r_bit_i")
 top_cell = layout.create_cell("rdac_bit")       # create Cell in Layout object (layout module)
 
 

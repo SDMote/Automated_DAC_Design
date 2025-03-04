@@ -17,8 +17,8 @@ import subprocess
 import pdk
 import user
 from utils import read_data
-from rdac import rdac, rdac_tb, resistor_tb, estimate_rdac_nl
-from inverter import inverter, inverter_tb, nmos_tb, pmos_tb
+from rdac import rdac, rdac_tb, estimate_rdac_nl
+from bit import inverter, inverter_tb, nmos_tb, pmos_tb, resistor_tb
 
 NMOS_W = 0.2        # inverter nmos finger width
 RES_L = 10.0        # rdac unit resistance lenght
@@ -50,9 +50,9 @@ print('Estimated\tINL=', max(abs(inl)), '\tDNL=', max(abs(dnl)))
 print('\nEstimating required multiplicity')
 
 ready = False
-multiplicity = 1
+number_fingers = 1
 digital_input = np.arange(4)
-rdac(2, NMOS_W, PMOS_W, multiplicity, RES_L)
+rdac(2, NMOS_W, PMOS_W, number_fingers, RES_L)
 rdac_tb(2, debug=True)
 subprocess.run("openvaf sim/adc_model.va -o sim/adc_model.osdi", shell=True, check=True) 
 
@@ -66,10 +66,10 @@ while not ready:
     if Rn < mos_resistance and Rp < mos_resistance:
         ready = True
     else:
-        multiplicity = multiplicity + 1
-        inverter(NMOS_W, PMOS_W, Mn=multiplicity, Mp=multiplicity) # edit the inverter is enough
+        number_fingers = number_fingers + 1
+        inverter(NMOS_W*number_fingers, PMOS_W*number_fingers, NGn=number_fingers, NGp=number_fingers) # edit the inverter is enough
 
-print('multiplicity=', multiplicity)
+print('multiplicity=', number_fingers)
 print('Rn=', Rn)
 print('Rp=', Rp)
 
@@ -77,7 +77,7 @@ print('Rp=', Rp)
 # Iterate 
 print('\nSimulation')
 
-rdac(RESOLUTION, NMOS_W, PMOS_W, multiplicity, RES_L)
+rdac(RESOLUTION, NMOS_W, PMOS_W, number_fingers, RES_L)
 rdac_tb(RESOLUTION)
 subprocess.run("openvaf sim/adc_model.va -o sim/adc_model.osdi", shell=True, check=True) 
 subprocess.run("ngspice -b sim/rdac_tb.spice -o sim/rdac.log > sim/temp.txt", shell=True, check=True) #!ngspice -b rdac.spice
@@ -100,17 +100,17 @@ print('Simulated\tINL=', max(abs(inl)), '\tDNL=', max(abs(dnl)))
 
 ## here set layout generator parameters to match simulated circuit
 
-# call layout generation with klayout
-subprocess.run("klayout -zz -r ../klayout/python/rdac_bit.py -j ../klayout/", shell=True, check=True) 
+# # call layout generation with klayout
+# subprocess.run("klayout -zz -r ../klayout/python/rdac_bit.py -j ../klayout/", shell=True, check=True) 
 
 
-NMOS_W = 2.0
-MOS_NG = 2
-PMOS_W = 2.5*NMOS_W
-inverter(NMOS_W, PMOS_W, NGn=MOS_NG, NGp=MOS_NG)
+# NMOS_W = 2.0
+# MOS_NG = 2
+# PMOS_W = 2.5*NMOS_W
+# inverter(NMOS_W, PMOS_W, NGn=MOS_NG, NGp=MOS_NG)
 
-# Extract spice netlist from GDS
-subprocess.run("magic -rcfile "+user.MAGICRC_PATH+" -noconsole -nowrapper ../magic/extract_rdac.tcl", shell=True, check=True)
+# # Extract spice netlist from GDS
+# subprocess.run("magic -rcfile "+user.MAGICRC_PATH+" -noconsole -nowrapper ../magic/extract_rdac.tcl", shell=True, check=True)
 
-# Perform LVS
-subprocess.run("netgen -batch lvs \"../magic/TOP.spice TOP\" \"sim/inverter.spice inverter\" "+user.NETGEN_SETUP+" ../netgen/comp.out", shell=True, check=True)
+# # Perform LVS
+# subprocess.run("netgen -batch lvs \"../magic/TOP.spice TOP\" \"sim/inverter.spice inverter\" "+user.NETGEN_SETUP+" ../netgen/comp.out", shell=True, check=True)

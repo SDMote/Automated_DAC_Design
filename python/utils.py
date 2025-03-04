@@ -5,6 +5,7 @@
 # ============================================================================
 
 import numpy as np
+import pdk
 
 def read_data(file_name):
     file = open(file_name,'r')
@@ -23,3 +24,7 @@ def read_data(file_name):
 
 def net(n):
     return " net" + str(n)
+
+def um(u):
+    s = str(round(u/pdk.GRID)/(1/pdk.GRID))
+    return s

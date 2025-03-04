@@ -20,6 +20,7 @@ RHIf = RHIf_MIN_SALB_LENGHT = 960 # 500
 # DRC rules
 
 #GatPoly
+GATa = GATa_MIN_WIDTH       = 130
 GATd = GATd_MIN_TO_ACT      = 70
 
 # NWell
@@ -39,6 +40,7 @@ CNTb = CNTb_MIN_SPACING     = 180
 CNTc = CNTc_MIN_ACT_OVER    = 70
 CNTd = CNTd_MIN_GAT_OVER    = 70
 CNTg1 = CNTg1_MIN_TO_PSD    = 90
+CNTf = CNTf_MIN_TO_GAT      = 110
 
 # Metal1
 M1a = M1a_MIN_WIDTH         = 160

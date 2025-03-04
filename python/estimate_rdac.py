@@ -18,7 +18,7 @@ import subprocess
 import pdk
 import user
 from utils import read_data, net
-from inverter import nmos_tb, pmos_tb
+from bit import nmos_tb, pmos_tb
 from rdac import resistor_tb, estimate_rdac_nl
 
 # W_PMOS = 2.5*W_NMOS

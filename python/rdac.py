@@ -8,37 +8,39 @@ import numpy as np
 import user
 import pdk
 from utils import net
-from inverter import inverter
+from bit import inverter, r2r_ladder
 
-def rdac(N, Wn, Wp, M=1, Lr=pdk.RES_MIN_L):
+def rdac(N, Wn, Wp, NG=1, Lr=pdk.RES_MIN_L, Nr=0):
     """Generates SPICE of RDAC, including SPICE for the inverter.
     N: bits of resolution.
     Wn: width of inverter NMOS.
     Wp: width of inverter PMOS.
-    Lr: lenght of RDAC unit resistor.
+    NG: number of gates of the transistors.
+    Lr: lenght of each resistor instance.
+    Nr: number of series resistors in each unit resistor R.
     return: string with RDAC ports.
     """
-    inverter(Wn, Wp, Mn=M, Mp=M)
+    inverter(Wn, Wp, NGn=NG, NGp=NG)
+    r2r_ladder(L=Lr, N=Nr)
     fp = open("sim/rdac.spice", "w")
     fp.write("** Resistive ladder DAC **\n")
     fp.write("\n")
     fp.write(".include \"inverter.spice\"\n")
+    fp.write(".include \"r2r_bit_0.spice\"\n")
+    fp.write(".include \"r2r_bit_i.spice\"\n")
     fp.write("\n")
     ports = "vss vdd"
     for i in range(N):
         ports = ports + " d" + str(i)
     ports = ports + " vout"
     fp.write(".subckt rdac "+ports+"\n")
-    fp.write("XR1 vss net1 rhigh w=0.5u l="+str(2*Lr)+"u m=1 b=0\n")
+    fp.write("X1 vss net0 net1 r2r_bit_0\n")
+    fp.write("X2 vss vdd d0 net1 inverter\n")
     for i in range(N-2):
-        fp.write("XR"+str(i+2)+net(i+1)+net(i+2)+" rhigh w=0.5u l="+str(Lr)+"u m=1 b=0\n")
-    fp.write("XR"+str(N)+" net"+str(N-1)+" vout rhigh w=0.5u l="+str(Lr)+"u m=1 b=0\n")
-    for i in range(N-1):
-        fp.write("x"+str(i+1)+" vss vdd d"+str(i)+net(N+i)+" inverter\n")
-        fp.write("XR"+str(N+i+1)+net(i+1)+net(N+i)+" rhigh w=0.5u l="+str(2*Lr)+"u m=1 b=0\n")
-    fp.write("x"+str(N)+" vss vdd d"+str(N-1)+net(2*N-1)+" inverter\n")
-    fp.write("XR"+str(2*N)+" vout"+net(2*N-1)+" rhigh w=0.5u l="+str(2*Lr)+"u m=1 b=0\n")
-    fp.write("\n")
+        fp.write("X"+str(2*i+3)+net(2*i)+net(2*i+2)+net(2*i+3)+" r2r_bit_i\n")
+        fp.write("X"+str(2*i+4)+" vss vdd d"+str(i+1)+net(2*i+3)+" inverter\n")
+    fp.write("X"+str(2*N-1)+net(2*N-4)+" vout"+net(2*N-2)+" r2r_bit_i\n")
+    fp.write("X"+str(2*N)+" vss vdd d"+str(N-1)+net(2*N-2)+" inverter\n")
     fp.write(".ends\n")
     fp.write("\n")
     fp.write(".end\n")
@@ -132,9 +134,10 @@ def rdac_tb(N: int, dut_spice="rdac.spice", debug=False):
         currents = ""
         voltages = ""
         for i in range(N):
-            nodes = nodes + " x1.net" + str(i+1)
-            currents = currents + " @n.x1.x"+str(i+1)+".xm1.nsg13_lv_nmos[ids] @n.x1.x"+str(i+1)+".xm2.nsg13_lv_pmos[ids]"
-            voltages = voltages + " @n.x1.x"+str(i+1)+".xm1.nsg13_lv_nmos[vds] @n.x1.x"+str(i+1)+".xm2.nsg13_lv_pmos[vds]"
+            if i < N-1:
+                nodes = nodes + " x1.net" + str(2*i)
+            currents = currents + " @n.x1.x"+str(2*i+2)+".xm1.nsg13_lv_nmos[ids] @n.x1.x"+str(2*i+2)+".xm2.nsg13_lv_pmos[ids]"
+            voltages = voltages + " @n.x1.x"+str(2*i+2)+".xm1.nsg13_lv_nmos[vds] @n.x1.x"+str(2*i+2)+".xm2.nsg13_lv_pmos[vds]"
         fp.write("save" + nodes + "\n")
         fp.write("save" + currents + "\n")
         fp.write("save" + voltages + "\n")
@@ -145,31 +148,6 @@ def rdac_tb(N: int, dut_spice="rdac.spice", debug=False):
         fp.write("wrdata "+user.SIM_PATH+"/rdac_vds.txt"+voltages+"\n")
     else:
         fp.write("wrdata "+user.SIM_PATH+"/rdac_dc.txt vout\n")
-    fp.write(".endc\n")
-    fp.write("\n")
-    fp.write(".end\n")
-    fp.close()
-    return
-
-
-def resistor_tb(L=pdk.RES_MIN_L):
-    """Generates SPICE testbench for N mosfet.
-    L: resistor lenght.
-    """
-    fp = open("sim/resistor_tb.spice", "w")
-    fp.write("** Resistor testbench **\n")
-    fp.write("\n")
-    fp.write(pdk.LIB_RES_T)
-    fp.write("\n")
-    fp.write("XR1 vn vp rhigh w=0.5u l="+str(L)+"u m=1 b=0\n")
-    fp.write("\n")
-    fp.write("Vp vp 0 "+str(pdk.LOW_VOLTAGE)+"\n")
-    fp.write("Vn vn 0 0\n")
-    fp.write("\n")
-    fp.write(".control\n")
-    fp.write("save v(vp) v(vn) @vn[i]\n")
-    fp.write("op\n")
-    fp.write("wrdata "+user.SIM_PATH+"/resistor_op.txt @vn[i]\n")
     fp.write(".endc\n")
     fp.write("\n")
     fp.write(".end\n")

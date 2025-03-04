@@ -6,6 +6,9 @@
 
 import user
 
+GRID = 0.005
+DBU = 0.001
+
 LOW_VOLTAGE = 1.2
 HIGH_VOLTAGE = 3.3
 

@@ -3,11 +3,12 @@
 #
 # ============================================================================
 
-NMOS_W      = 6
-PMOS_W      = 12
-N_GATES     = 10
+RESOLUTION  = 4
+NMOS_W      = 8.0
+PMOS_W      = 8.0
+N_GATES     = 8
 MOS_LENGHT  = 0.13
 POLY_WIDTH  = 0.13
 RES_LENGHT  = 6.0
-RES_LAYOUT  = 1
+N_RES       = 2
 

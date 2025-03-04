@@ -6,7 +6,7 @@
 
 from pdk import *
 
-def params(Wn=0.3, Wp=0.3, NG=1, Lr=RES_MIN_L, Layout=1):
+def params(N=4, Wn=0.3, Wp=0.3, NG=1, Lr=RES_MIN_L, Layout=1):
     """Generates python file with parameters for layout generation.
     N: bits of resolution.
     Wn: width of inverter NMOS.
@@ -20,6 +20,7 @@ def params(Wn=0.3, Wp=0.3, NG=1, Lr=RES_MIN_L, Layout=1):
     fp.write("#\n")
     fp.write("# ============================================================================\n")
     fp.write("\n")
+    fp.write("RESOLUTION  = "+str(N)+"\n")
     fp.write("NMOS_W      = "+str(Wn)+"\n")
     fp.write("PMOS_W      = "+str(Wp)+"\n")
     fp.write("N_GATES     = "+str(NG)+"\n")
