@@ -167,58 +167,29 @@ def rdac_ideal_tb(N: int, R, Rn, Rp):
     lsb = pdk.LOW_VOLTAGE/(2**N)
     transfer_function_ref = digital_input * pdk.LOW_VOLTAGE / 2**N
 
+    transfer_function = np.zeros(2**N)
     voltages = np.zeros(N)
-    for j in range(N):
+    for i in range(N):
         fp = open("sim/rdac_ideal_tb.spice", "w")
         fp.write("** Ideal Resistive ladder DAC testbench **\n")
         fp.write("\n")
-        # fp.write("X1 vss net0"+net(RESOLUTION-1)+" r2r_bit_0\n")
-        # for i in range(RESOLUTION-2):
-        #     fp.write("X"+str(i+2)+net(i)+net(i+1)+net(RESOLUTION+i)+" r2r_bit_i\n")
-        # fp.write("X"+str(RESOLUTION)+net(RESOLUTION-2)+" vout"+net(2*RESOLUTION-2)+" r2r_bit_i\n")
-        # for i in range(RESOLUTION-1):
-        #     if i==j:
-        #         fp.write("R"+str(i)+" d"+str(i)+net(RESOLUTION+i-1)+" "+str(Rp)+"\n")
-        #     else:
-        #         fp.write("R"+str(i)+" d"+str(i)+net(RESOLUTION+i-1)+" "+str(Rn)+"\n")
-        # if j == RESOLUTION-1:
-        #     fp.write("R"+str(RESOLUTION-1)+" d"+str(RESOLUTION-1)+net(2*RESOLUTION-2)+" "+str(Rp)+"\n")
-        # else:
-        #     fp.write("R"+str(RESOLUTION-1)+" d"+str(RESOLUTION-1)+net(2*RESOLUTION-2)+" "+str(Rn)+"\n")
-        # for i in range(RESOLUTION-1):
-        #     if i==j:
-        #         fp.write("Vd"+str(i)+" d"+str(i)+" 0 "+str(pdk.LOW_VOLTAGE)+"\n")
-        #     else:
-        #         fp.write("Vd"+str(i)+" d"+str(i)+" 0 0\n")
-        # if j == RESOLUTION-1:
-        #     fp.write("Vd"+str(RESOLUTION-1)+" d"+str(RESOLUTION-1)+" 0 "+str(pdk.LOW_VOLTAGE)+"\n")
-        # else:
-        #     fp.write("Vd"+str(RESOLUTION-1)+" d"+str(RESOLUTION-1)+" 0 0\n")
         fp.write("R1 0 net1 "+str(2*R)+"\n")
-        for i in range(N-2):
-            fp.write("R"+str(i+2)+net(i+1)+net(i+2)+" "+str(R)+"\n")
+        for j in range(N-2):
+            fp.write("R"+str(j+2)+net(j+1)+net(j+2)+" "+str(R)+"\n")
         fp.write("R"+str(N)+" net"+str(N-1)+" vout "+str(R)+"\n")
-        for i in range(N-1):
-            fp.write("R"+str(N+i+1)+net(i+1)+net(N+i)+" "+str(2*R)+"\n")
+        for j in range(N-1):
+            fp.write("R"+str(N+j+1)+net(j+1)+net(N+j)+" "+str(2*R)+"\n")
         fp.write("R"+str(2*N)+" vout"+net(2*N-1)+" "+str(2*R)+"\n")
-        for i in range(N-1):
-            if i == j:
-                fp.write("R"+str(2*N+i+1)+" d"+str(i)+net(N+i)+" "+str(Rp)+"\n")
+        for j in range(N):
+            if j == i:
+                fp.write("R"+str(2*N+j+1)+" d"+str(j)+net(N+j)+" "+str(Rp)+"\n")
             else:
-                fp.write("R"+str(2*N+i+1)+" d"+str(i)+net(N+i)+" "+str(Rn)+"\n")
-        if j == N-1:
-            fp.write("R"+str(3*N)+" d"+str(N-1)+net(2*N-1)+" "+str(Rp)+"\n")
-        else:
-            fp.write("R"+str(3*N)+" d"+str(N-1)+net(2*N-1)+" "+str(Rn)+"\n")
-        for i in range(N-1):
-            if i == j:
-                fp.write("Vd"+str(i)+" d"+str(i)+" 0 "+str(pdk.LOW_VOLTAGE)+"\n")
+                fp.write("R"+str(2*N+j+1)+" d"+str(j)+net(N+j)+" "+str(Rn)+"\n")
+        for j in range(N):
+            if j == i:
+                fp.write("Vd"+str(j)+" d"+str(j)+" 0 "+str(pdk.LOW_VOLTAGE)+"\n")
             else:
-                fp.write("Vd"+str(i)+" d"+str(i)+" 0 0\n")
-        if j == N-1:
-            fp.write("Vd"+str(N-1)+" d"+str(N-1)+" 0 "+str(pdk.LOW_VOLTAGE)+"\n")
-        else:
-            fp.write("Vd"+str(N-1)+" d"+str(N-1)+" 0 0\n")
+                fp.write("Vd"+str(j)+" d"+str(j)+" 0 0\n")
         fp.write("\n")
         fp.write(".control\n")
         fp.write("save v(vout)\n")
@@ -230,15 +201,14 @@ def rdac_ideal_tb(N: int, R, Rn, Rp):
         fp.close()
         subprocess.run("ngspice -b sim/rdac_ideal_tb.spice -o sim/rdac.log > sim/temp.txt", shell=True, check=True)
         data_dc = read_data("sim/rdac_op.txt")
-        voltages[j] = data_dc[1][0]
+        voltages[i] = data_dc[1][0]
         
-    transfer_function = np.zeros(2**N)
     for i in range(2**N):
         for j in range(N):
             transfer_function[i] = transfer_function[i] + ((i//2**j)%2)*voltages[j]
     inl = (transfer_function - transfer_function_ref)/lsb
     dnl = (transfer_function[1:] - transfer_function[:2**N-1] - lsb)/lsb
-    return inl, dnl, voltages
+    return inl, dnl, voltages, transfer_function
 
 
 def estimate_rdac_nl(N: int, R, Rn, Rp):
@@ -287,5 +257,5 @@ def estimate_rdac_nl(N: int, R, Rn, Rp):
 
     inl = (transfer_function - transfer_function_ref)/lsb
     dnl = (transfer_function[1:] - transfer_function[:2**N-1] - lsb)/lsb
-    return inl, dnl, voltages
+    return inl, dnl, voltages, transfer_function
 
