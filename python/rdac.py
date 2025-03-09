@@ -156,59 +156,63 @@ def rdac_tb(N: int, dut_spice="rdac.spice", debug=False):
     return
 
 
-def rdac_ideal_tb(N: int, R, Rn, Rp):
+def rdac_ideal_tb(N: int, i: int, R, Rn, Rp):
     """Generates SPICE testbench for ideal RDAC.
     N: bits of resolution.
+    i: input code.
     R: Unit resistance value
     Rn: NMOS on resistance
     Rp: PMOS on resistance
     """
-    digital_input = np.arange(2**N)
-    lsb = pdk.LOW_VOLTAGE/(2**N)
-    transfer_function_ref = digital_input * pdk.LOW_VOLTAGE / 2**N
+    # digital_input = np.arange(2**N)
+    # lsb = pdk.LOW_VOLTAGE/(2**N)
+    # transfer_function_ref = digital_input * pdk.LOW_VOLTAGE / 2**N
 
-    transfer_function = np.zeros(2**N)
-    voltages = np.zeros(N)
-    for i in range(N):
-        fp = open("sim/rdac_ideal_tb.spice", "w")
-        fp.write("** Ideal Resistive ladder DAC testbench **\n")
-        fp.write("\n")
-        fp.write("R1 0 net1 "+str(2*R)+"\n")
-        for j in range(N-2):
-            fp.write("R"+str(j+2)+net(j+1)+net(j+2)+" "+str(R)+"\n")
-        fp.write("R"+str(N)+" net"+str(N-1)+" vout "+str(R)+"\n")
-        for j in range(N-1):
-            fp.write("R"+str(N+j+1)+net(j+1)+net(N+j)+" "+str(2*R)+"\n")
-        fp.write("R"+str(2*N)+" vout"+net(2*N-1)+" "+str(2*R)+"\n")
-        for j in range(N):
-            if j == i:
-                fp.write("R"+str(2*N+j+1)+" d"+str(j)+net(N+j)+" "+str(Rp)+"\n")
-            else:
+    # transfer_function = np.zeros(2**N)
+    # voltages = np.zeros(N)
+    # for i in range(2**N):
+    fp = open("sim/rdac_ideal_tb.spice", "w")
+    fp.write("** Ideal Resistive ladder DAC testbench **\n")
+    fp.write("\n")
+    fp.write("R1 0 net1 "+str(2*R)+"\n")
+    for j in range(N-2):
+        fp.write("R"+str(j+2)+net(j+1)+net(j+2)+" "+str(R)+"\n")
+    fp.write("R"+str(N)+" net"+str(N-1)+" vout "+str(R)+"\n")
+    for j in range(N-1):
+        fp.write("R"+str(N+j+1)+net(j+1)+net(N+j)+" "+str(2*R)+"\n")
+    fp.write("R"+str(2*N)+" vout"+net(2*N-1)+" "+str(2*R)+"\n")
+    for j in range(N):
+        if (i//2**j)%2: #j == i:
+            fp.write("R"+str(2*N+j+1)+" d"+str(j)+net(N+j)+" "+str(Rp)+"\n")
+        else:
                 fp.write("R"+str(2*N+j+1)+" d"+str(j)+net(N+j)+" "+str(Rn)+"\n")
-        for j in range(N):
-            if j == i:
-                fp.write("Vd"+str(j)+" d"+str(j)+" 0 "+str(pdk.LOW_VOLTAGE)+"\n")
-            else:
-                fp.write("Vd"+str(j)+" d"+str(j)+" 0 0\n")
-        fp.write("\n")
-        fp.write(".control\n")
-        fp.write("save v(vout)\n")
-        fp.write("op\n")
-        fp.write("wrdata "+user.SIM_PATH+"/rdac_op.txt vout\n")
-        fp.write(".endc\n")
-        fp.write("\n")
-        fp.write(".end\n")
-        fp.close()
-        subprocess.run("ngspice -b sim/rdac_ideal_tb.spice -o sim/rdac.log > sim/temp.txt", shell=True, check=True)
-        data_dc = read_data("sim/rdac_op.txt")
-        voltages[i] = data_dc[1][0]
-        
-    for i in range(2**N):
-        for j in range(N):
-            transfer_function[i] = transfer_function[i] + ((i//2**j)%2)*voltages[j]
-    inl = (transfer_function - transfer_function_ref)/lsb
-    dnl = (transfer_function[1:] - transfer_function[:2**N-1] - lsb)/lsb
-    return inl, dnl, voltages, transfer_function
+    for j in range(N):
+        if (i//2**j)%2: #j == i:
+            fp.write("Vd"+str(j)+" d"+str(j)+" 0 "+str(pdk.LOW_VOLTAGE)+"\n")
+        else:
+            fp.write("Vd"+str(j)+" d"+str(j)+" 0 0\n")
+    fp.write("\n")
+    fp.write(".control\n")
+    fp.write("save v(vout)\n")
+    fp.write("op\n")
+    fp.write("wrdata "+user.SIM_PATH+"/rdac_op.txt vout\n")
+    fp.write(".endc\n")
+    fp.write("\n")
+    fp.write(".end\n")
+    fp.close()
+    #     subprocess.run("ngspice -b sim/rdac_ideal_tb.spice -o sim/rdac.log > sim/temp.txt", shell=True, check=True)
+    #     data_dc = read_data("sim/rdac_op.txt")
+    #     # voltages[i] = data_dc[1][0]
+    #     transfer_function[i] = data_dc[1][0]
+    # for j in range(N):
+    #     voltages[j] = transfer_function[2**j]
+    # for i in range(2**N):
+    #     for j in range(N):
+    #         transfer_function[i] = transfer_function[i] + ((i//2**j)%2)*voltages[j]
+    # inl = (transfer_function - transfer_function_ref)/lsb
+    # dnl = (transfer_function[1:] - transfer_function[:2**N-1] - lsb)/lsb
+    # return inl, dnl, voltages, transfer_function
+    return
 
 
 def estimate_rdac_nl(N: int, R, Rn, Rp):
@@ -219,43 +223,46 @@ def estimate_rdac_nl(N: int, R, Rn, Rp):
     Rp: PMOS on resistance.
     return: INL, DNL arrays of size 2^N and 2^N-1 (normalized to LSB).
     """
-    digital_input = np.arange(2**N)
-    lsb = pdk.LOW_VOLTAGE/(2**N)
-    transfer_function_ref = digital_input * pdk.LOW_VOLTAGE / 2**N
+    Q = int(2**N)
+    digital_input = np.arange(Q)
+    lsb = pdk.LOW_VOLTAGE/Q
+    transfer_function_ref = digital_input * pdk.LOW_VOLTAGE / Q
 
-    r_1 = 2*R + Rp
-    r_2 = np.zeros(N)
-    r_3 = np.zeros(N)
+    temp = [2*R + Rn, 2*R + Rp]
+    r_1 = temp[1]
+    r_2 = np.zeros((N, Q//2))
+    r_3 = np.zeros((N, Q//2))
     r_4 = np.zeros(N)
-    k = np.zeros(N)
-    temp = 2*R + Rn
+    k = np.zeros((N, Q//2))
 
-    r_3[N-1] = float('inf')
-    r_3[N-2] = 3*R + Rn
-    k[N-1] = 1
-    k[N-2] = temp / (temp + R)
-    voltages = np.zeros(N)
-    for i in range(N-3, -1, -1):
-        temp2 = temp*r_3[i+1]/(temp + r_3[i+1])
-        r_3[i] = R + temp2
-        k[i] = k[i+1] * temp2/r_3[i]
-    for i in range(N):
-        if i == 0:
-            r_2[0] = 2*R
-        else:
-            r_2[i] = R + temp*r_2[i-1]/(temp + r_2[i-1])
-        if i == N-1:
-            r_4[i] = r_2[i]
-        else:
-            r_4[i] = r_2[i]*r_3[i]/(r_2[i] + r_3[i])
-        voltages[i] = pdk.LOW_VOLTAGE * k[i] * r_4[i]/(r_4[i] + r_1)
+    r_2[0][0] = 2*R
+    for j in range(N-1):
+        for i in range(2**j):
+            # r_2[j][i] = R + temp[i%2]*r_2[j-1][i//2]/(temp[i%2] + r_2[j-1][i//2])
+            r_2[j+1][i] = R + temp[0]*r_2[j][i]/(temp[0] + r_2[j][i])
+            r_2[j+1][2**j+i] = R + temp[1]*r_2[j][i]/(temp[1] + r_2[j][i])
 
-    transfer_function = np.zeros(2**N)
-    for i in range(2**N):
+    r_3[N-1][0] = float('inf')
+    r_3[N-2][0] = R + temp[0]
+    r_3[N-2][1] = R + temp[1]
+    k[N-1][0] = 1
+    k[N-2][0] = temp[0] / (temp[0] + R)
+    k[N-2][1] = temp[1] / (temp[1] + R)
+    for j in range(N-3, -1, -1):
+        for i in range(2**(N-1-j)):
+            temp2 = temp[i%2]*r_3[j+1][i//2]/(temp[i%2] + r_3[j+1][i//2])
+            r_3[j][i] = R + temp2
+            k[j][i] = k[j+1][i//2] * temp2/r_3[j][i]
+
+    transfer_function = np.zeros(Q)
+    for i in range(Q):
         for j in range(N):
-            transfer_function[i] = transfer_function[i] + ((i//2**j)%2)*voltages[j]
-
+            if (i//2**j)%2:
+                if j == N-1:
+                    r_4 = r_2[N-1][i%(2**j)]
+                else:
+                    r_4 = r_2[j][i%(2**j)]*r_3[j][i//2**(j+1)]/(r_2[j][i%(2**j)]+r_3[j][i//2**(j+1)])
+                transfer_function[i] = transfer_function[i] + pdk.LOW_VOLTAGE * k[j][i//2**(j+1)] * r_4 / (r_4 + r_1)
     inl = (transfer_function - transfer_function_ref)/lsb
-    dnl = (transfer_function[1:] - transfer_function[:2**N-1] - lsb)/lsb
-    return inl, dnl, voltages, transfer_function
-
+    dnl = (transfer_function[1:] - transfer_function[:Q-1] - lsb)/lsb
+    return inl, dnl, transfer_function
