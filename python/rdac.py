@@ -233,14 +233,18 @@ def estimate_rdac_nl(N: int, R, Rn, Rp):
     r_2 = np.zeros((N, Q//2))
     r_3 = np.zeros((N, Q//2))
     r_4 = np.zeros(N)
+    # r_th = np.zeros(Q)
     k = np.zeros((N, Q//2))
 
     r_2[0][0] = 2*R
     for j in range(N-1):
         for i in range(2**j):
-            # r_2[j][i] = R + temp[i%2]*r_2[j-1][i//2]/(temp[i%2] + r_2[j-1][i//2])
             r_2[j+1][i] = R + temp[0]*r_2[j][i]/(temp[0] + r_2[j][i])
             r_2[j+1][2**j+i] = R + temp[1]*r_2[j][i]/(temp[1] + r_2[j][i])
+    r_th = r_2[N-1][Q//2-1] * temp[1] / (r_2[N-1][Q//2-1] + temp[1])
+    # for i in range(Q//2):
+    #     r_th[2*i] = r_2[N-1][i] * temp[0] / (r_2[N-1][i] + temp[0])
+    #     r_th[2*i+1] = r_2[N-1][i] * temp[1] / (r_2[N-1][i] + temp[1])
 
     r_3[N-1][0] = float('inf')
     r_3[N-2][0] = R + temp[0]
@@ -265,4 +269,4 @@ def estimate_rdac_nl(N: int, R, Rn, Rp):
                 transfer_function[i] = transfer_function[i] + pdk.LOW_VOLTAGE * k[j][i//2**(j+1)] * r_4 / (r_4 + r_1)
     inl = (transfer_function - transfer_function_ref)/lsb
     dnl = (transfer_function[1:] - transfer_function[:Q-1] - lsb)/lsb
-    return inl, dnl, transfer_function
+    return inl, dnl, transfer_function, r_th
