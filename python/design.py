@@ -11,6 +11,7 @@ import user
 from utils import read_data, um
 from bit import inverter, resistor_tb
 
+
 def measure_resistance(Lr, Nr=1):
     resistor_tb(Lr, Nr)
     subprocess.run("ngspice -b sim/resistor_tb.spice -o sim/resistor.log > sim/temp.txt", shell=True, check=True)
@@ -63,3 +64,28 @@ def set_ron_ratio(Wn, Wp, ratio, NF=1):
             step = (Rn * Wn) / target - Wn  
             # print(" With Wn=", um(Wn), " and Wp=", um(Wp), ", Rn=", Rn, ", Rp=", Rp, " and distance=", um(step))
     return Wn, Wp, Rn, Rp
+
+
+def layout_params(N=4, Wn=0.3, Wp=0.3, NG=1, Lr=pdk.RES_MIN_L, Nr=1):
+    """Generates python file with parameters for layout generation.
+    N: bits of resolution.
+    Wn: width of inverter NMOS.
+    Wp: width of inverter PMOS.
+    Lr: lenght of RDAC unit resistor.
+    """
+    fp = open("../klayout/python/params.py", "w")
+    fp.write("# ============================================================================\n")
+    fp.write("# DAC layout parameters\n")
+    fp.write("#\n")
+    fp.write("# ============================================================================\n")
+    fp.write("\n")
+    fp.write("RESOLUTION  = "+str(N)+"\n")
+    fp.write("NMOS_W      = "+um(Wn)+"\n")
+    fp.write("PMOS_W      = "+um(Wp)+"\n")
+    fp.write("N_GATES     = "+str(NG)+"\n")
+    fp.write("MOS_LENGHT  = "+um(pdk.MOS_MIN_L)+"\n")
+    fp.write("POLY_WIDTH  = "+um(pdk.MOS_MIN_L)+"\n")
+    fp.write("RES_LENGHT  = "+um(Lr)+"\n")
+    fp.write("N_RES       = "+str(Nr)+"\n")
+    fp.write("\n")
+    return

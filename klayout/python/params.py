@@ -3,12 +3,12 @@
 #
 # ============================================================================
 
-RESOLUTION  = 4
-NMOS_W      = 8.0
-PMOS_W      = 8.0
-N_GATES     = 8
+RESOLUTION  = 8
+NMOS_W      = 4.495
+PMOS_W      = 4.715
+N_GATES     = 4
 MOS_LENGHT  = 0.13
 POLY_WIDTH  = 0.13
-RES_LENGHT  = 6.0
+RES_LENGHT  = 7.42
 N_RES       = 2
 

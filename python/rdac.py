@@ -156,6 +156,42 @@ def rdac_tb(N: int, dut_spice="rdac.spice", debug=False):
     return
 
 
+def rdac_tb_tran(N: int, C, dut_spice="rdac.spice"):
+    """Generates SPICE testbench to measure RDAC worst rise time.
+    N: bits of resolution.
+    C: load capacitance in picofarad.
+    dut_spice: name of the SPICE file with the inverter to be tested.
+    """
+    lsb = pdk.LOW_VOLTAGE/2**N
+    vin = " vin"
+    fp = open("sim/rdac_tb_tran.spice", "w")
+    fp.write("** Resistive ladder DAC testbench **\n")
+    fp.write("\n")
+    fp.write(pdk.LIB_MOS_TT)
+    fp.write(pdk.LIB_RES_T)
+    fp.write(".include \""+dut_spice+"\"\n")
+    fp.write("\n")
+    fp.write("x1 vss vdd" + vin*N + " vout rdac\n")
+    fp.write("C1 vout 0 " + str(C) + "p\n")
+    fp.write("\n")
+    fp.write("Vdd vdd 0 "+str(pdk.LOW_VOLTAGE)+"\n")
+    fp.write("Vss vss 0 0\n")
+    fp.write("Vin vin 0 PULSE(1.2 0 1u 1p 1p 1m 2m)\n")
+    fp.write("\n")
+    fp.write(".control\n")
+    fp.write("save v(vin) v(vout)\n")
+    fp.write("tran 0.001 1m\n")
+    Vhigh = pdk.LOW_VOLTAGE - lsb
+    fp.write("meas tran t1 find time when v(vout)="+str(0.1*Vhigh)+" TD=0 RISE=1\n")
+    fp.write("meas tran t2 find time when v(vout)="+str(0.9*Vhigh)+" TD=0 RISE=1\n")
+    fp.write("wrdata "+user.SIM_PATH+"/rdac_tran.txt t2-t1\n")
+    fp.write(".endc\n")
+    fp.write("\n")
+    fp.write(".end\n")
+    fp.close()
+    return
+
+
 def rdac_ideal_tb(N: int, i: int, R, Rn, Rp):
     """Generates SPICE testbench for ideal RDAC.
     N: bits of resolution.

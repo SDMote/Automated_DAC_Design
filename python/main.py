@@ -5,11 +5,14 @@
 # ============================================================================
 
 
-RESOLUTION = 10     # number of bits
-MAX_NL = 0.5        # worst (max absolute) integral and differential nonlinearities (in LSB)
+RESOLUTION = 8     # number of bits
 # EQUAL_WIDTH = 0     # use equal widths for NMOS and PMOS, else consider a ratio between on-resistances
 IDEAL_WIDTH = 1     # use ideal on-resistance ratio between NMOS and PMOS, else equall on-resistances
-RES_NUMBER  = 1     # number of resistance instances that make the unit resistor R, changing the layout
+RES_NUMBER  = 2     # number of resistance instances that make the unit resistor R, changing the layout
+
+MAX_NL = 0.5        # worst (max absolute) integral and differential nonlinearities (in LSB)
+MAX_TIME = 2.5      # max transition time in us (rise or fall) from 10% to 90%
+C_LOAD = 50         # load capacitance in picofarad
 
 
 # ============================================================================
@@ -20,22 +23,22 @@ import subprocess
 import pdk
 import user
 from utils import read_data, um
-from design import sim2bits, set_ron_ratio, measure_resistance
-from rdac import rdac, rdac_tb, estimate_rdac_nl, r2r_ladder
-from bit import inverter, resistor_tb
+from design import set_ron_ratio, measure_resistance, layout_params
+from rdac import rdac, rdac_tb, estimate_rdac_nl, r2r_ladder, rdac_tb_tran
 
 
 Q = 2**RESOLUTION # number of codes
 LSB = pdk.LOW_VOLTAGE/Q
-
-target_R_th = 25000    # this should be set from a max time delay specification (tau = 1/RC)
+target_R_th = MAX_TIME * 1e-6 / (2.2 * C_LOAD * 1e-12)     # 10%-90%, rise_time = 2.2*tau = 2.2*R_th*C_load
+print("Resolution: ", RESOLUTION, "\tNº of series resistors: ", RES_NUMBER)
+print("TARGET: Max NL:", MAX_NL, "\tOutput resistance:", target_R_th)
 
 
 # Estimate on-resistances ratio
 print("\nResistance estimation:")
 R = 1
+Rp = R/10
 if IDEAL_WIDTH: # on resistance ratio that minimizes both nonlinearities
-    Rp = R/10
     inl, dnl, _, _ = estimate_rdac_nl(RESOLUTION, R, 0.2*Rp, Rp)
     worst_inl_1 = max(abs(inl))
     worst_dnl_1 = max(abs(dnl))
@@ -57,11 +60,12 @@ inl, dnl, _ , _ = estimate_rdac_nl(RESOLUTION, R, ratio*Rp, Rp)
 # print(" With R=", R, "Rn=", ratio*Rp, "and Rp=", Rp)
 # print(" Estimate => INL: ", max(abs(inl)), " DNL: ", max(abs(dnl)))
 worst_nl = max(max(abs(inl)), max(abs(dnl)))
-R = R * worst_nl / MAX_NL       # might need to approximate a second time
+R = R * worst_nl / MAX_NL       # first approximation
+inl, dnl, _ , _ = estimate_rdac_nl(RESOLUTION, R, ratio*Rp, Rp)
+worst_nl = max(max(abs(inl)), max(abs(dnl)))
+R = R * worst_nl / MAX_NL       # second approximation
 k = 1/(R // Rp)
 inl, dnl, _ , R_th = estimate_rdac_nl(RESOLUTION, R, ratio*k*R, k*R)
-# print(" With R=", R, "Rn=", ratio*k*R, "and Rp=", k*R)
-# print(" Estimate => INL: ", max(abs(inl)), " DNL: ", max(abs(dnl)), "and R_th=", R_th)
 target_R = R * target_R_th / R_th
 target_Rp = k*target_R
 target_Rn = ratio*k*target_R
@@ -93,10 +97,10 @@ subprocess.run("openvaf sim/adc_model.va -o sim/adc_model.osdi", shell=True, che
 Wn, Wp, Rn, Rp = set_ron_ratio(Wn, Wp, ratio)
 equivalent_width = (Wp + Wn) * Rp / target_Rp
 if RES_NUMBER == 2:     # fixed width ladder layout 2
-    ladder_width = 3.85         # write as function of PDK or constant
+    max_inverter_width = 3.85 - 0.7        # write as function of PDK or constant
 else:                   # variable width ladder layout 1
-    ladder_width = RES_L + 1.0  # check constant from layout
-fingers = int(equivalent_width // ladder_width + 1)
+    max_inverter_width = RES_L + 1.0  # check constant from layout
+fingers = int(equivalent_width // max_inverter_width + 1)
 if fingers > 1:
     Wn = Wp = pdk.MOS_MIN_W*fingers
     Wn, Wp, Rn, Rp = set_ron_ratio(Wn, Wp, ratio, fingers)
@@ -107,57 +111,55 @@ print(" Estimated inverter width:", equivalent_width, " Number of fingers: ", fi
 print("\nInverter size simulation:")
 step = (Rp * Wp) / target_Rp - Wp
 while Rn > target_Rn or Rp > target_Rp:
-    if abs(step) < pdk.GRID:
-        Wn = Wn + pdk.GRID
-        Wp = Wp + 2*pdk.GRID
+    if abs(step) < fingers*pdk.GRID:
+        Wn = Wn + fingers*pdk.GRID
+        Wp = Wp + 2*fingers*pdk.GRID
     else:
         Wn = Wn + ratio * step
-        Wp = Wp + step
+        Wp = Wp + step 
     Wn, Wp, Rn, Rp = set_ron_ratio(Wn, Wp, ratio, fingers)
+    equivalent_width = (Wp + Wn) * Rp / target_Rp
+    if equivalent_width // (fingers-1) > max_inverter_width:
+        fingers = fingers + 1
+        # Wn, Wp, Rn, Rp = set_ron_ratio(Wn, Wp, ratio, fingers)
     step = (Rp * Wp) / target_Rp - Wp
-    inl, dnl, _, R_th = estimate_rdac_nl(RESOLUTION, R, Rn, Rp)
-print(" With Wn=", um(Wn), " and Wp=", um(Wp), ", then Rn=", Rn, "Rp=", Rp)
+        
+inl, dnl, _, R_th = estimate_rdac_nl(RESOLUTION, R, Rn, Rp)
+print(" With Wn=", um(Wn), " Wp=", um(Wp), " and NG=", fingers, ", then Rn=", Rn, "Rp=", Rp)
 print(" Estimate => INL: ", max(abs(inl)), " DNL: ", max(abs(dnl)), " R_th", R_th)
 
 
 # Simulate full circuit
 print('\nTop-level simulation:')
-
 rdac(RESOLUTION, Wn, Wp, fingers, RES_L, RES_NUMBER)
 rdac_tb(RESOLUTION)
 subprocess.run("openvaf sim/adc_model.va -o sim/adc_model.osdi", shell=True, check=True) 
 subprocess.run("ngspice -b sim/rdac_tb.spice -o sim/rdac.log > sim/temp.txt", shell=True, check=True) #!ngspice -b rdac.spice
-
 data_dc = read_data("sim/rdac_dc.txt")
 digital_input = np.arange(Q)
 transfer_function = np.flip(data_dc[1][0:Q])
 tfunction_ref = digital_input * pdk.LOW_VOLTAGE / Q
 inl = (transfer_function - tfunction_ref)/LSB
 dnl = (transfer_function[1:] - transfer_function[:Q-1] - LSB)/LSB
-print(' Simulate => INL:', max(abs(inl)), ' DNL:', max(abs(dnl)))
+
+rdac_tb_tran(RESOLUTION, C_LOAD)
+subprocess.run("ngspice -b sim/rdac_tb_tran.spice -o sim/rdac.log > sim/temp.txt", shell=True, check=True) #!ngspice -b rdac.spice
+data = read_data("sim/rdac_tran.txt")
+rise_time = data[1][0]
+R_th = rise_time / (2.2 * C_LOAD * 1e-12)
+print(' Simulate => INL:', max(abs(inl)), ' DNL:', max(abs(dnl)), " Worst transition time:", rise_time)
+print("resistance", R_th)
 
 
-# while not ready:
-#     inl, dnl = estimate_rdac_nl(RESOLUTION, R, mos_resistance, mos_resistance)
-#     if max(abs(inl))<1 and max(abs(dnl))<1:
-#         ready = True
-#     else:
-#         mos_resistance = mos_resistance / 2
+# ============================================================================
 
-
-## here set layout generator parameters to match simulated circuit
-
-# # call layout generation with klayout
-# subprocess.run("klayout -zz -r ../klayout/python/rdac_bit.py -j ../klayout/", shell=True, check=True) 
-
-
-# NMOS_W = 2.0
-# MOS_NG = 2
-# PMOS_W = 2.5*NMOS_W
-# inverter(NMOS_W, PMOS_W, NGn=MOS_NG, NGp=MOS_NG)
+# Layout generation
+print('\nGenerating layout:')
+layout_params(RESOLUTION, Wn, Wp, fingers, RES_L, RES_NUMBER)   # set layout generator parameters to match simulated circuit
+subprocess.run("klayout -zz -r ../klayout/python/rdac.py -j ../klayout/", shell=True, check=True) # call layout generation with klayout
 
 # # Extract spice netlist from GDS
 # subprocess.run("magic -rcfile "+user.MAGICRC_PATH+" -noconsole -nowrapper ../magic/extract_rdac.tcl", shell=True, check=True)
 
 # # Perform LVS
-# subprocess.run("netgen -batch lvs \"../magic/TOP.spice TOP\" \"sim/inverter.spice inverter\" "+user.NETGEN_SETUP+" ../netgen/comp.out", shell=True, check=True)
+# subprocess.run("netgen -batch lvs \"../magic/TOP.spice TOP\" \"sim/rdac.spice rdac\" "+user.NETGEN_SETUP+" ../netgen/comp.out", shell=True, check=True)

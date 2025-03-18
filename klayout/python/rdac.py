@@ -18,7 +18,7 @@ M1_W = RES_W
 M1_WIDTH = dbu2um(M1_W)
 
 
-# subprocess.run("klayout -zz -r ../klayout/python/inverter.py -j ../klayout/", shell=True, check=True) 
+subprocess.run("klayout -zz -r ../klayout/python/inverter.py -j ../klayout/", shell=True, check=True) 
 subprocess.run("klayout -zz -r ../klayout/python/r2r_ladder.py -j ../klayout/", shell=True, check=True)
 ## Initialize layout
 layout = kl.Layout()                            # create Layout (layout containing cell hierarchy, including cells and instances)
