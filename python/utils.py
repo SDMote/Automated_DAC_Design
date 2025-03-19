@@ -22,9 +22,27 @@ def read_data(file_name):
     file.close()
     return data
 
+
 def net(n):
     return " net" + str(n)
 
-def um(u):
-    s = str(round(u/pdk.GRID)/(1/pdk.GRID))
+
+# turn dbu into um string
+def um(d: int):
+    # s = str(d / (1/pdk.DBU))
+    K = int(pdk.GRID/pdk.DBU)
+    s = str(round(d/K) / (1/pdk.GRID))
     return s
+
+
+# rounds dbu to minimum grid
+def dbu(d):
+    K = int(pdk.GRID/pdk.DBU)
+    d = K*round(d/K)
+    return d
+
+
+def dbu2um(d: int):
+    K = int(pdk.GRID/pdk.DBU)
+    u = round(d/K) / (1/pdk.GRID)
+    return u

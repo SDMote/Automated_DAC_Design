@@ -20,8 +20,8 @@ from rdac import rdac_tb, rdac, estimate_rdac_nl, rdac_ideal_tb
 from bit import resistor_tb, inverter
 from utils import read_data
 
-RES_L = 1.0
-NMOS_W = 0.5
+RES_L = 1000
+NMOS_W = 500
 PMOS_W = 3*NMOS_W
 NG = 1
 

@@ -13,7 +13,7 @@ def um2dbu(u: float):
     return d
 
 def dbu2um(d: int):
-    u = pdk.DBU*d
+    u = d / (1/pdk.DBU)
     return u
 
 def dbu(d):

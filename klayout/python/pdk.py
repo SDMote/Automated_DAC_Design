@@ -21,6 +21,8 @@ RHIf = RHIf_MIN_SALB_LENGHT = 960 # 500
 
 #GatPoly
 GATa = GATa_MIN_WIDTH       = 130
+GATb = GATb_MIN_SPACING     = 180
+GATc = GATc_MIN_OVER_ACT    = 180
 GATd = GATd_MIN_TO_ACT      = 70
 
 # NWell

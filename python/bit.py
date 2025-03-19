@@ -6,7 +6,7 @@
 
 import user
 import pdk
-from utils import net, um
+from utils import net, um, dbu
 
 
 def inverter(Wn=pdk.MOS_MIN_W, Wp=pdk.MOS_MIN_W, Ln=pdk.MOS_MIN_L, Lp=pdk.MOS_MIN_L, NGn=1, NGp=1):
@@ -18,14 +18,14 @@ def inverter(Wn=pdk.MOS_MIN_W, Wp=pdk.MOS_MIN_W, Ln=pdk.MOS_MIN_L, Lp=pdk.MOS_MI
     NGn: number of NMOS fingers.
     NGn: number of PMOS fingers.
     """
-    fwn = Wn/NGn
-    fwp = Wp/NGp
+    fwn = dbu(Wn/NGn) #if Wn%NGn == 0 else Wn//NGn + 1
+    fwp = dbu(Wp/NGp) #if Wp%NGp == 0 else Wp//NGp + 1
     fp = open("sim/inverter.spice", "w")
     fp.write("** Inverter **\n")
     fp.write("\n")
     fp.write(".subckt inverter vss vdd vin vout\n")
-    fp.write("XM1 vss vin vout vss sg13_lv_nmos w="+um(Wn)+"u l="+um(Ln)+"u ng="+str(NGn)+" m=1\n")
-    fp.write("XM2 vout vin vdd vdd sg13_lv_pmos w="+um(Wp)+"u l="+um(Lp)+"u ng="+str(NGp)+" m=1\n")
+    fp.write("XM1 vss vin vout vss sg13_lv_nmos w="+um(NGn*fwn)+"u l="+um(Ln)+"u ng="+str(NGn)+" m=1\n")
+    fp.write("XM2 vout vin vdd vdd sg13_lv_pmos w="+um(NGp*fwp)+"u l="+um(Lp)+"u ng="+str(NGp)+" m=1\n")
     if NGn%2 == 0:
         fp.write("XM3 vss vss vss vss sg13_lv_nmos w="+um(4*fwn)+"u l="+um(Ln)+"u ng=4 m=1\n")
     else:
@@ -40,7 +40,9 @@ def inverter(Wn=pdk.MOS_MIN_W, Wp=pdk.MOS_MIN_W, Ln=pdk.MOS_MIN_L, Lp=pdk.MOS_MI
     fp.write("\n")
     fp.write(".end\n")
     fp.close()
-    return
+    Wn = NGn*fwn
+    Wp = NGp*fwp
+    return Wn, Wp
 
 
 def r2r_ladder(L=pdk.RES_MIN_L, N=1):
@@ -52,7 +54,7 @@ def r2r_ladder(L=pdk.RES_MIN_L, N=1):
     fp.write("** R-2R **\n")
     fp.write("\n")
     fp.write(".subckt r2r_bit_i n0 n1 n2\n")
-    il = L/N if N > 1 else L
+    il = L//N if N > 1 else L
     if N==0:
         fp.write("XR1 n0 n1 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
         fp.write("XR2 n1 n2 rhigh w=0.5u l="+um(2*il)+"u m=1 b=0\n")
@@ -185,7 +187,7 @@ def resistor_tb(L=pdk.RES_MIN_L, N=1):
     L: Total lenght of unit resistor R.
     N: Number of resistances in series that make the unit resistor.
     """
-    il = L/N if N > 1 else L
+    il = L//N if N > 1 else L
     fp = open("sim/resistor_tb.spice", "w")
     fp.write("** Resistor testbench **\n")
     fp.write("\n")

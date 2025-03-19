@@ -2,6 +2,7 @@
 *.va
 *test*
 *old*
+params.py
 
 # Tools
 simulations
