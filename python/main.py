@@ -5,13 +5,13 @@
 # ============================================================================
 
 
-RESOLUTION = 8     # number of bits
+RESOLUTION = 10     # number of bits
 # EQUAL_WIDTH = 0     # use equal widths for NMOS and PMOS, else consider a ratio between on-resistances
 IDEAL_WIDTH = 1     # use ideal on-resistance ratio between NMOS and PMOS, else equall on-resistances
 RES_NUMBER  = 2     # number of resistance instances that make the unit resistor R, changing the layout
 
-MAX_NL = 0.25       # worst (max absolute) integral and differential nonlinearities (in LSB)
-MAX_TIME = 5.5      # max transition time in us (rise or fall) from 10% to 90%
+MAX_NL = 0.50       # worst (max absolute) integral and differential nonlinearities (in LSB)
+MAX_TIME = 2.5      # max transition time in us (rise or fall) from 10% to 90%
 C_LOAD = 50         # load capacitance in picofarad
 
 
@@ -100,11 +100,12 @@ rdac_tb(2, debug=True)
 subprocess.run("openvaf sim/adc_model.va -o sim/adc_model.osdi", shell=True, check=True) 
 Rn, Rp, Wn, Wp = set_ron_ratio(Wn, Wp, ratio)   # first approximation
 equivalent_inverter_width = 2 * max(Wp * Rp / target_Rp, Wn * Rn / target_Rn)
-INVERTER_FRAME = max(RHIa/2 + M1b, GATd+POLY_W/2, (NWc+NWd)/2, (300+PSDb+PSDc1)/2) + max(M1b, GATd + CNTd) + CNTd + CNTa + GATb/2
+inverter_const_width = max(RHIa/2 + M1b, GATd+POLY_W/2, (NWc+NWd)/2, (300+PSDb+PSDc1)/2) + max(M1b, GATd + CNTd) + CNTd + CNTa + GATb/2
 if RES_NUMBER == 2:     # fixed width ladder layout 2
-    max_inverter_width = 3850 - 2*INVERTER_FRAME #2220      # write as function of PDK or constant
+    HALF_WIDTH = 3960/2   
 else:                   # variable width ladder layout 1
-    max_inverter_width = RES_L - 500  # check constant from layout
+    HALF_WIDTH = (RES_L + 1000)/2 # check constant from layout
+max_inverter_width = 2*(HALF_WIDTH - inverter_const_width)  
 fingers = int(equivalent_inverter_width // max_inverter_width + 1)   # Estimate inverter equivalent width to determine NF
 if fingers > 1:
     Wn = Wp = MOS_MIN_W * fingers
@@ -164,11 +165,17 @@ print("resistance", R_th)
 
 # Layout generation
 print('\nGenerating layout:')
-layout_params(RESOLUTION, Wn, Wp, fingers, RES_L, RES_NUMBER, POLY_W)   # set layout generator parameters to match simulated circuit
+layout_params(RESOLUTION, Wn, Wp, fingers, RES_L, RES_NUMBER, HALF_WIDTH, POLY_W)   # set layout generator parameters to match simulated circuit
 subprocess.run("klayout -zz -r ../klayout/python/rdac.py -j ../klayout/", shell=True, check=True) # call layout generation with klayout
 
-# # Extract spice netlist from GDS
-# subprocess.run("magic -rcfile "+user.MAGICRC_PATH+" -noconsole -nowrapper ../magic/extract_rdac.tcl", shell=True, check=True)
+print("\nVerification:")
+# Run DRC
+print(" Running DRC")
+subprocess.run("klayout -zz -r "+user.KLAYOUT_DRC+" -rd in_gds=\"../klayout/rdac.gds\" -rd report_file=\"../klayout/drc/sg13g2_maximal.lyrdb\" >../klayout/drc/drc.log", shell=True, check=True)
 
-# # Perform LVS
-# subprocess.run("netgen -batch lvs \"../magic/TOP.spice TOP\" \"sim/rdac.spice rdac\" "+user.NETGEN_SETUP+" ../netgen/comp.out", shell=True, check=True)
+# Extract spice netlist from GDS
+subprocess.run("magic -rcfile "+user.MAGICRC_PATH+" -noconsole -nowrapper ../magic/extract_rdac.tcl > sim/temp.txt", shell=True, check=True)
+
+# Perform LVS
+print(" Running LVS")
+subprocess.run("netgen -batch lvs \"../magic/rdac.spice rdac\" \"sim/rdac.spice rdac\" "+user.NETGEN_SETUP+" ../netgen/comp.out > sim/temp.txt", shell=True, check=True)

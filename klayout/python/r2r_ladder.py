@@ -18,8 +18,8 @@ M1_WIDTH = dbu2um(M1_RES)
 
 
 M1_W    = um2dbu(M1_WIDTH)
-MOS_L   = um2dbu(MOS_LENGHT)
-POLY_W  = um2dbu(POLY_WIDTH)
+MOS_L   = MOS_LENGHT
+POLY_W  = POLY_WIDTH
 RES_WIDTH = dbu2um(RES_W)
 
 # ============================================================================
@@ -42,7 +42,7 @@ layer_psd   = layout.layer(14, 0)
 match N_RES:
     case 1:
         pass
-        segment_lenght = um2dbu(RES_LENGHT)
+        segment_lenght = RES_LENGHT
         R_SEG_L  = dbu2um(segment_lenght)
         yoffset = -130 + EXTBc + SALc
         xoffset = -segment_lenght - RHId - CNTa/2
@@ -51,7 +51,7 @@ match N_RES:
         r_instance = top_cell.insert(kl.CellInstArray(pcell_rhigh, kl.Trans(1, 1, xoffset, yoffset), kl.Vector(0,ystep), kl.Vector(), 3, 1))
         xoffset = xoffset - RHId - CNTa/2
         xstep = segment_lenght + 2*RHId + CNTa
-        paint(top_cell, layer_m1, -M1_W/2, -M1_W, M1_W/2, yoffset+RES_W)
+        paint(top_cell, layer_m1, -M1_W/2, 0, M1_W/2, yoffset+RES_W)
         port(top_cell, layer_m1, "n2", -M1_W/2, 0, M1_W/2, SALc)
         paint(top_cell, layer_m1, xoffset-M1_RES/2, yoffset, xoffset+M1_RES/2, yoffset+RES_W+ystep)
         yoffset = yoffset + ystep
@@ -60,15 +60,15 @@ match N_RES:
         temp = CNTa/2 + CNTd + PSDc + PSDb/2
         # paint(top_cell, layer_m1, xoffset-temp-M1_W, yoffset, xoffset+M1_RES/2, yoffset+RES_W)
         # pin_n0 = port(top_cell, layer_m1, "n0", xoffset-temp, yoffset, xoffset-temp+M1_W/2, yoffset+RES_W)
-        paint(top_cell, layer_m1, xoffset+xstep-M1_W/2, yoffset, xoffset+xstep+temp+M1_W, yoffset+RES_W)
+        paint(top_cell, layer_m1, xoffset+xstep-M1_W/2, yoffset, xoffset+xstep+temp, yoffset+RES_W)
         port(top_cell, layer_m1, "n1", xoffset+xstep+temp-PSDb/2, yoffset, xoffset+xstep+temp, yoffset+RES_W)
     case 2:
-        segment_lenght = um2dbu(RES_LENGHT/2)
+        segment_lenght = RES_LENGHT/2
         R_SEG_L  = dbu2um(segment_lenght)
         xstep = RES_W + 2*SALc + SALb
         xoffset = -RES_W/2
         yoffset = -130 + RHId + CNTa + CNTd + PSDc + PSDb
-        paint(top_cell, layer_m1, -M1_W/2, -M1_W, M1_W/2, yoffset-RHId-CNTa/2+RES_W/2)
+        paint(top_cell, layer_m1, -M1_W/2, 0, M1_W/2, yoffset-RHId-CNTa/2+RES_W/2)
         port(top_cell, layer_m1, "n2", -M1_W/2, 0, M1_W/2, PSDc)
         ystep = segment_lenght + 2*(RHId + CNTa + CNTd + PSDc) + PSDb
         pcell_rhigh = layout.create_cell("rhigh", "SG13_dev", { "w": RES_WIDTH*1e-6, "l":R_SEG_L*1e-6 })
@@ -81,10 +81,10 @@ match N_RES:
         paint(top_cell, layer_m1, xoffset+2*xstep, yoffset-M1_RES/2, xoffset+2*xstep+RES_W, temp+M1_RES/2)
         paint(top_cell, layer_m1, xoffset, temp-M1_RES/2, xoffset+xstep+RES_W, temp+M1_RES/2)
         yoffset = yoffset + ystep
-        temp = SALc + EXTBc/2
+        temp = SALc + SALb/2
         # paint(top_cell, layer_m1, xoffset-temp-M1_W, yoffset-M1_RES/2, xoffset+RES_W, yoffset+M1_RES/2)
         # pin_n0 = port(top_cell, layer_m1, "n0", xoffset-temp, yoffset-M1_RES/2, xoffset-PSDc, yoffset+M1_RES/2)
-        paint(top_cell, layer_m1, xoffset+xstep, yoffset-M1_RES/2, xoffset+2*xstep+temp+2*RES_W, yoffset+M1_RES/2)
+        paint(top_cell, layer_m1, xoffset+xstep, yoffset-M1_RES/2, xoffset+2*xstep+temp+RES_W, yoffset+M1_RES/2)
         port(top_cell, layer_m1, "n1", xoffset+2*xstep+RES_W+PSDc, yoffset-M1_RES/2, xoffset+2*xstep+temp+RES_W, yoffset+M1_RES/2)
     case _:
         pass
@@ -107,15 +107,15 @@ layout.write("../klayout/r2r_bit_0.gds")
 top_cell.name = "r2r_bit_i"
 match N_RES:
     case 1:
-        paint(top_cell, layer_m1, xoffset-temp-M1_W, yoffset, xoffset+M1_RES/2, yoffset+RES_W)
+        paint(top_cell, layer_m1, xoffset-temp, yoffset, xoffset+M1_RES/2, yoffset+RES_W)
         pin_n0 = port(top_cell, layer_m1, "n0", xoffset-temp, yoffset, xoffset-temp+PSDb/2, yoffset+RES_W)
     case 2:
-        paint(top_cell, layer_m1, xoffset-temp-M1_W, yoffset-M1_RES/2, xoffset+RES_W, yoffset+M1_RES/2)
+        paint(top_cell, layer_m1, xoffset-temp, yoffset-M1_RES/2, xoffset+RES_W, yoffset+M1_RES/2)
         pin_n0 = port(top_cell, layer_m1, "n0", xoffset-temp, yoffset-M1_RES/2, xoffset-PSDc, yoffset+M1_RES/2)
     case _:
         pass
 
-print("Writing R-2R GDS")
+print(" Writing R-2R GDS")
 layout.write("../klayout/r2r_bit_i.gds")
 
 
@@ -155,7 +155,7 @@ match N_RES:
         xoffset = xoffset-xstep
         pcell_rhigh = layout.create_cell("rhigh", "SG13_dev", { "w": RES_WIDTH*1e-6, "l":R_SEG_L*1e-6 })
         r_instance = top_cell.insert(kl.CellInstArray(pcell_rhigh, kl.Trans(0, 0, xoffset, yoffset), kl.Vector(0, ystep), kl.Vector(), 2, 1))
-        paint(top_cell, layer_m1, xoffset-temp-M1_W, yoffset-RHId-CNTa/2-M1_W/2, xoffset+M1_W, yoffset-RHId-CNTa/2+M1_W/2)
+        paint(top_cell, layer_m1, xoffset-temp-M1_W/2, yoffset-RHId-CNTa/2-M1_W/2, xoffset+M1_W, yoffset-RHId-CNTa/2+M1_W/2)
         port(top_cell, layer_m1, "n0", xoffset-temp, yoffset-RHId-CNTa/2-M1_W/2, xoffset-PSDc, yoffset-RHId-CNTa/2+M1_W/2)
         temp = yoffset + ystep - RHId - CNTa/2
         yoffset = yoffset + segment_lenght + RHId + CNTa/2
@@ -173,5 +173,5 @@ r_instance.flatten()
 # print(top_cell.shapes(text_layer)[0].)
   
 ## Save GDS
-print("Writing 2R-2R GDS")
+print(" Writing 2R-2R GDS")
 layout.write("../klayout/r2r_bit_0.gds")

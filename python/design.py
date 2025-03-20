@@ -70,7 +70,7 @@ def set_ron_ratio(Wn, Wp, ratio, NF=1):
     return Rn, Rp, Wn, Wp
 
 
-def layout_params(N=4, Wn=0.3, Wp=0.3, NG=1, Lr=pdk.RES_MIN_L, Nr=1, Wg=pdk.MOS_MIN_L):
+def layout_params(N=4, Wn=0.3, Wp=0.3, NG=1, Lr=pdk.RES_MIN_L, Nr=1, Winv=1925, Wg=pdk.MOS_MIN_L):
     """Generates python file with parameters for layout generation.
     N: bits of resolution.
     Wn: width of inverter NMOS.
@@ -91,5 +91,6 @@ def layout_params(N=4, Wn=0.3, Wp=0.3, NG=1, Lr=pdk.RES_MIN_L, Nr=1, Wg=pdk.MOS_
     fp.write("POLY_WIDTH  = "+str(Wg)+"\n")
     fp.write("RES_LENGHT  = "+str(Lr)+"\n")
     fp.write("N_RES       = "+str(Nr)+"\n")
+    fp.write("HALF_WIDTH  = "+str(Winv)+"\n")
     fp.write("\n")
     return

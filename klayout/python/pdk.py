@@ -49,6 +49,18 @@ M1a = M1a_MIN_WIDTH         = 160
 M1b = M1b_MIN_SPACING       = 180
 M1c1 = M1c1_MIN_ENDCAP_CNT  = 50
 
+# Via1
+V1a = V1a_WIDTH             = 190
+V1b = V1b_MIN_SPACING       = 220
+V1c = V1c_MIN_M1_OVER       = 10
+V1c1 = V1c1_MIN_ENDCAP_M1   = 50
+
+# Metal2-5
+MNa = MNa_MIN_WIDTH         = 200
+MNb = MNb_MIN_SPACING       = 210
+MNc = MNc_MIN_OVER_VN1      = 5     # Via(n-1)
+MNc1 = MNc1_MIN_ENDCAP_VN1  = 50    # Via(n-1)
+
 # SalBlock
 SALb = SALb_MIN_SPACING         = 420
 SALc = SALc_MIN_OVER_ACT_GAT    = 200

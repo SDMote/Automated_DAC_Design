@@ -42,7 +42,6 @@ lenght_mos   = dbu2um(MOS_LENGHT)
 # Ties
 yoffset = NWe + CNTc
 xoffset = max(M1b+M1_W/2, GATd+POLY_W/2, (NWc+NWd)/2, (300+PSDb+PSDc1)/2)
-HALF_WIDTH = max(xnmos, xpmos) + xoffset + max(M1b, GATd + CNTd) + CNTd + CNTa + GATb
 xstep = CNTa + CNTb
 n = int((xnmos - CNTa - 2*CNTc)/xstep) + 1
 paint_array(top_cell, layer_cnt, -xoffset-CNTc, yoffset, -CNTa, CNTa, n, -xstep)
@@ -86,11 +85,11 @@ paint_array(top_cell, layer_m1, xoffset, temp, -M1b-CNTa-CNTd, M1a, 1, 0, N_GATE
 temp = temp + (N_GATES+1)*ystep
 paint_array(top_cell, layer_m1, xoffset, temp, -M1b-CNTa-CNTd, M1a, 1, 0, 2, ystep)
 temp = temp + ystep + M1a
-paint(top_cell, layer_m1, xoffset-M1b, 0, -HALF_WIDTH, temp)
-port(top_cell, layer_m1, "vss", xoffset-M1b, 0, xoffset-M1b-CNTa-CNTd, M1_W)
+paint(top_cell, layer_m1, xoffset-M1b, 0, -HALF_WIDTH-M1_W/2, temp)
+port(top_cell, layer_m1, "vss", xoffset-M1b, 0, -HALF_WIDTH, M1_W)
 xoffset = -xoffset + xpmos - xnmos
-paint(top_cell, layer_m1, xoffset+M1b, 0, HALF_WIDTH, temp)
-port(top_cell, layer_m1, "vdd", xoffset+M1b, 0, xoffset+M1b+CNTa+CNTd, M1_W)
+paint(top_cell, layer_m1, xoffset+M1b, 0, HALF_WIDTH+M1_W/2, temp)
+port(top_cell, layer_m1, "vdd", xoffset+M1b, 0, HALF_WIDTH, M1_W)
 temp = temp - ystep - M1a
 paint_array(top_cell, layer_m1, xoffset, yoffset, M1b+CNTa+CNTd, M1a, 1, 0, 2, ystep)
 paint_array(top_cell, layer_m1, xoffset, temp, M1b+CNTa+CNTd, M1a, 1, 0, 2, ystep)
@@ -112,5 +111,5 @@ paint(top_cell, layer_cnt, xoffset-CNTa-CNTd, temp+GATa+CNTf, xoffset-CNTd, temp
 
 
 ## Save GDS
-print("Writing inverter GDS")
+print(" Writing inverter GDS")
 layout.write("../klayout/inverter.gds")
