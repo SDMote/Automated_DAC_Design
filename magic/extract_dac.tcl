@@ -5,8 +5,8 @@
 # ============================================================================
 
 cd ../magic
-gds read ../klayout/rdac.gds
-load rdac
+gds read ../klayout/dac.gds
+load dac
 extract
 ext2spice lvs
 ext2spice

@@ -16,7 +16,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
 import pdk
-from rdac import rdac_tb, rdac, estimate_r2rdac_nl, rdac_ideal_tb
+from dac import dac_tb
+from rdac import rdac, estimate_r2rdac_nl, rdac_ideal_tb
 from bit import resistor_tb, inverter
 from utils import read_data
 
@@ -66,7 +67,7 @@ for i in range(N):
     digital_input = np.arange(Q)
     tfunction_ref = digital_input * pdk.LOW_VOLTAGE / Q
     rdac(resolution[i], NMOS_W, PMOS_W, NG, RES_L*2**(STEP*i), 1)
-    rdac_tb(resolution[i], debug=True)
+    dac_tb(resolution[i], debug=True)
     subprocess.run("openvaf sim/adc_model.va -o sim/adc_model.osdi", shell=True, check=True) 
     # measure R
     resistor_tb(RES_L*2**(2*i))

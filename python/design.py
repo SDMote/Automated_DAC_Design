@@ -7,7 +7,6 @@
 import numpy as np
 import subprocess
 import pdk
-import user
 from utils import read_data, um, dbu
 from bit import inverter, resistor_tb
 
@@ -20,11 +19,12 @@ def measure_resistance(Lr, Nr=1):
 
 
 def sim2bits (Wn, Wp, NF=1):
-    # requires running rdac() and rdac_tb() first for resolution 2
+    # requires running dac() and dac_tb() first for resolution 2
+    # works for both rdac topologies
     Wn, Wp = inverter(Wn, Wp, NGn=NF, NGp=NF) # editing the inverter is enough to update transistor widths
-    subprocess.run("ngspice -b sim/rdac_tb.spice -o sim/rdac.log > sim/temp.txt", shell=True, check=True)
-    data_ids = read_data("sim/rdac_ids.txt")
-    data_vds = read_data("sim/rdac_vds.txt")
+    subprocess.run("ngspice -b sim/dac_tb.spice -o sim/dac.log > sim/temp.txt", shell=True, check=True)
+    data_ids = read_data("sim/dac_ids.txt")
+    data_vds = read_data("sim/dac_vds.txt")
     resistances = data_vds[1:]/data_ids[1:]
     Rn = (resistances[0][1]+resistances[0][3]+resistances[2][2]+resistances[2][3])/4
     Rp = (resistances[1][0]+resistances[1][2]+resistances[3][0]+resistances[3][1])/4
@@ -32,7 +32,8 @@ def sim2bits (Wn, Wp, NF=1):
 
 
 def set_ron_ratio(Wn, Wp, ratio, NF=1):
-    # requires running rdac() and rdac_tb() first for resolution 2
+    # requires running dac() and dac_tb() first for resolution 2
+    # works for R2R-ladder rdac
     Wn = dbu(Wn)
     Wp = dbu(Wp)
     MIN = int(pdk.GRID / pdk.DBU)

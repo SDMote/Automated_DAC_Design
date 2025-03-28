@@ -42,11 +42,11 @@ inverter_cell = layout.cell("inverter")
 r2r_bit_i_cell = layout.cell("r2r_bit_i")
 r2r_bit_0_cell = layout.cell("r2r_bit_0")
 r_cell = layout.cell("rhigh")
-top_cell = layout.create_cell("rdac")            # create Cell in Layout object (layout module)
+top_cell = layout.create_cell("dac")            # create Cell in Layout object (layout module)
 
 
 
-## Draw RDAC
+## Draw R2R-RDAC
 # Intantiate bits
 xstep = r2r_bit_i_cell.bbox().right - r2r_bit_i_cell.bbox().left
 inverters_instance_1 = top_cell.insert(kl.CellInstArray(inverter_cell, kl.Trans(0, 0, 0, 0), kl.Vector(2*xstep,0), kl.Vector(), (RESOLUTION+1)//2, 1))
@@ -97,4 +97,4 @@ match N_RES:
 
 ## Save GDS
 print(" Writing RDAC GDS")
-layout.write("../klayout/rdac.gds")
+layout.write("../klayout/dac.gds")

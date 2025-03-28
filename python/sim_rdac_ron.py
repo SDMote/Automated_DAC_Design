@@ -17,7 +17,8 @@ import matplotlib.pyplot as plt
 import subprocess
 import pdk
 from utils import read_data
-from rdac import rdac, rdac_tb, estimate_r2rdac_nl
+from dac import dac_tb
+from rdac import rdac, estimate_r2rdac_nl
 from bit import resistor_tb
 
 PMOS_W = 2.5*NMOS_W
@@ -30,7 +31,7 @@ subprocess.run("ngspice -b sim/resistor_tb.spice -o sim/resistor.log > sim/temp.
 data_op_res = read_data("sim/resistor_op.txt")
 R = data_op_res[0][0]/data_op_res[1][0]
 
-rdac_tb(RESOLUTION, debug=True)
+dac_tb(RESOLUTION, debug=True)
 subprocess.run("openvaf sim/adc_model.va -o sim/adc_model.osdi", shell=True, check=True)
 rdac(RESOLUTION, NMOS_W, PMOS_W, NG, RES_L, 1)
 print("Running SPICE")

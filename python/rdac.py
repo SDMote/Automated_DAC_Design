@@ -9,7 +9,7 @@ import user
 import pdk
 from utils import um, net
 from bit import inverter, r2r_ladder
-from dac import adc_va
+
 
 def rdac(N, Wn, Wp, NG=1, Lr=pdk.RES_MIN_L, type=0, Nr=1):
     """Generates SPICE of RDAC, including SPICE for the inverter.
@@ -21,7 +21,7 @@ def rdac(N, Wn, Wp, NG=1, Lr=pdk.RES_MIN_L, type=0, Nr=1):
     Nr: number of series resistors in each unit resistor R.
     return: string with RDAC ports.
     """
-    fp = open("sim/rdac.spice", "w")
+    fp = open("sim/dac.spice", "w")
     inverter(Wn, Wp, NGn=NG, NGp=NG)
     if type == 0:   # R2R-ladder RDAC
         r2r_ladder(L=Lr, N=Nr)
@@ -59,110 +59,6 @@ def rdac(N, Wn, Wp, NG=1, Lr=pdk.RES_MIN_L, type=0, Nr=1):
     fp.write(".end\n")
     fp.close()
     return ports
-
-
-def rdac_tb(N: int, debug=False):
-    """Generates SPICE testbench for RDAC.
-    N: bits of resolution.
-    type: DAC topology to be tested.
-    debug: when True, testbench saves internal voltages and currents.
-    """
-    adc_va(N)
-    lsb = pdk.LOW_VOLTAGE/2**N  # this is only to use the adc
-    ports = ""
-    for i in range(N):
-        ports = ports + " d" + str(i)
-    fp = open("sim/rdac_tb.spice", "w")
-    fp.write("** "+str(N)+"-Bit DAC testbench **\n")
-    fp.write("\n")
-    fp.write(pdk.LIB_MOS_TT)
-    fp.write(pdk.LIB_RES_T)
-    fp.write(".include \"rdac.spice\"\n")
-    fp.write(".include \"adc_model.spice\"\n")
-    fp.write("\n")
-    fp.write("x1 vss vdd" + ports + " vout dac\n")
-    fp.write("x2 vin" + ports + " adc\n")
-    fp.write("\n")
-    fp.write("Vdd vdd 0 "+str(pdk.LOW_VOLTAGE)+"\n")
-    fp.write("Vss vss 0 0\n")
-    fp.write("Vin vin 0 0\n")
-    signals = ""
-    for i in range(N):
-        #t = 2**i * 10
-        signals = signals + " v(d" + str(i) + ")"
-        #fp.write("Vd"+str(i)+" d"+str(i)+" 0 dc 0 PULSE(0 1.2 0 1n 1n "+str(t-1)+"n "+str(2*t)+"n)\n")
-    fp.write("\n")
-    fp.write(".control\n")
-    fp.write("save v(vin)" + signals + " v(vout)\n")
-    if debug:
-        nodes = ""
-        currents = ""
-        voltages = ""
-        if type == 0:
-            for i in range(N):
-                if i < N-1:
-                    nodes = nodes + " x1.net" + str(2*i)
-                currents = currents + " @n.x1.x"+str(2*i+2)+".xm1.nsg13_lv_nmos[ids] @n.x1.x"+str(2*i+2)+".xm2.nsg13_lv_pmos[ids]"
-                voltages = voltages + " @n.x1.x"+str(2*i+2)+".xm1.nsg13_lv_nmos[vds] @n.x1.x"+str(2*i+2)+".xm2.nsg13_lv_pmos[vds]"
-            fp.write("save" + nodes + "\n")
-        else:
-            for i in range(N):
-                currents = currents + " @n.x1.x"+str(2**i)+".xm1.nsg13_lv_nmos[ids] @n.x1.x"+str(2**i)+".xm2.nsg13_lv_pmos[ids]"
-                voltages = voltages + " @n.x1.x"+str(2**i)+".xm1.nsg13_lv_nmos[vds] @n.x1.x"+str(2**i)+".xm2.nsg13_lv_pmos[vds]"
-        fp.write("save" + currents + "\n")
-        fp.write("save" + voltages + "\n")
-    fp.write("dc Vin "+str(lsb/2)+" "+str(lsb*2**N)+" "+str(lsb)+"\n")
-    if debug:
-        fp.write("wrdata "+user.SIM_PATH+"/rdac_dc.txt vout"+nodes+"\n")
-        fp.write("wrdata "+user.SIM_PATH+"/rdac_ids.txt"+currents+"\n")
-        fp.write("wrdata "+user.SIM_PATH+"/rdac_vds.txt"+voltages+"\n")
-    else:
-        fp.write("wrdata "+user.SIM_PATH+"/rdac_dc.txt vout\n")
-    fp.write(".endc\n")
-    fp.write("\n")
-    fp.write(".end\n")
-    fp.close()
-    return
-
-
-def rdac_tb_tran(N: int, C, type=0):
-    """Generates SPICE testbench to measure RDAC worst rise time.
-    N: bits of resolution.
-    C: load capacitance in picofarad.
-    type: DAC topology to be tested.
-    """
-    dut_spice="rdac.spice"
-    if type == 0:
-        lsb = pdk.LOW_VOLTAGE/2**N
-    else:
-        lsb = pdk.LOW_VOLTAGE/(2**N-1)
-    vin = " vin"
-    fp = open("sim/rdac_tb_tran.spice", "w")
-    fp.write("** Resistive ladder DAC testbench **\n")
-    fp.write("\n")
-    fp.write(pdk.LIB_MOS_TT)
-    fp.write(pdk.LIB_RES_T)
-    fp.write(".include \""+dut_spice+"\"\n")
-    fp.write("\n")
-    fp.write("x1 vss vdd" + vin*N + " vout rdac\n")
-    fp.write("C1 vout 0 " + str(C) + "p\n")
-    fp.write("\n")
-    fp.write("Vdd vdd 0 "+str(pdk.LOW_VOLTAGE)+"\n")
-    fp.write("Vss vss 0 0\n")
-    fp.write("Vin vin 0 PULSE(1.2 0 1u 1p 1p 1m 2m)\n")
-    fp.write("\n")
-    fp.write(".control\n")
-    fp.write("save v(vin) v(vout)\n")
-    fp.write("tran 0.001 1m\n")
-    Vhigh = pdk.LOW_VOLTAGE - lsb
-    fp.write("meas tran t1 find time when v(vout)="+str(0.1*Vhigh)+" TD=0 RISE=1\n")
-    fp.write("meas tran t2 find time when v(vout)="+str(0.9*Vhigh)+" TD=0 RISE=1\n")
-    fp.write("wrdata "+user.SIM_PATH+"/rdac_tran.txt t2-t1\n")
-    fp.write(".endc\n")
-    fp.write("\n")
-    fp.write(".end\n")
-    fp.close()
-    return
 
 
 def rdac_ideal_tb(N: int, i: int, R, Rn, Rp):
