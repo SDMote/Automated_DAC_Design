@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import subprocess
 import pdk
 from utils import read_data
-from rdac import estimate_r2rdac_nl, rdac_ideal_tb
+from rdac_spice import estimate_r2rdac_nl, rdac_ideal_tb
 
 R = 1500
 

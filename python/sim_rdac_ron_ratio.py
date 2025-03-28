@@ -16,9 +16,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
 import pdk
-from dac import dac_tb
-from rdac import rdac, estimate_r2rdac_nl, rdac_ideal_tb
-from bit import resistor_tb, inverter
+from dac_spice import dac_tb
+from rdac_spice import rdac, estimate_r2rdac_nl, rdac_ideal_tb
+from spice import resistor_tb, inverter
 from utils import read_data
 
 RES_L = 1000

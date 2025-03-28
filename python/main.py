@@ -24,9 +24,10 @@ import subprocess
 import user
 from pdk import *
 from utils import read_data, um, dbu, dbu2um
-from design import set_ron_ratio, measure_resistance, layout_params
-from rdac import rdac, estimate_r2rdac_nl, r2r_ladder
-from dac import dac_tb, dac_tb_tran
+from design import measure_resistance, layout_params
+from dac_spice import dac_tb, dac_tb_tran
+from rdac_spice import rdac, estimate_r2rdac_nl, r2r_ladder
+from rdac_design import set_ron_ratio
 
 MIN_STEP = GRID/DBU
 Q = 2**RESOLUTION # number of codes

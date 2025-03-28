@@ -45,64 +45,6 @@ def inverter(Wn=pdk.MOS_MIN_W, Wp=pdk.MOS_MIN_W, Ln=pdk.MOS_MIN_L, Lp=pdk.MOS_MI
     return Wn, Wp
 
 
-def r2r_ladder(L=pdk.RES_MIN_L, N=1):
-    """Generates SPICE subcircuits to form resistive R-2R ladder.
-    L: Total lenght of unit resistor R.
-    N: Number of resistances in series that make the unit resistor.
-    """
-    fp = open("sim/r2r_bit_i.spice", "w")
-    fp.write("** R-2R **\n")
-    fp.write("\n")
-    fp.write(".subckt r2r_bit_i n0 n1 n2\n")
-    il = L//N if N > 1 else L
-    if N==0:
-        fp.write("XR1 n0 n1 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        fp.write("XR2 n1 n2 rhigh w=0.5u l="+um(2*il)+"u m=1 b=0\n")
-    elif N==1:
-        fp.write("XR1 n0 n1 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        fp.write("XR2 n1 net0 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        fp.write("XR3 net0 n2 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-    else:
-        fp.write("XR1 n0 net0 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        for i in range(1,N-1):
-            fp.write("XR"+str(i+1)+net(i-1)+net(i)+" rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        fp.write("XR"+str(N)+net(N-2)+" n1 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        fp.write("XR"+str(N+1)+" n1"+net(N-1)+" rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        for i in range(1,2*N-1):
-            fp.write("XR"+str(N+i+1)+net(N+i-2)+net(N+i-1)+" rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        fp.write("XR"+str(3*N)+net(3*N-3)+" n2 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-    fp.write(".ends\n")
-    fp.write("\n")
-    fp.write(".end\n")
-    fp.close()
-    # resistances for bit 0
-    fp = open("sim/r2r_bit_0.spice", "w")
-    fp.write("** 2R-2R **\n")
-    fp.write("\n")
-    fp.write(".subckt r2r_bit_0 n0 n1 n2\n")
-    if N==0:
-        fp.write("XR1 n0 n1 rhigh w=0.5u l="+um(2*il)+"u m=1 b=0\n")
-        fp.write("XR2 n1 n2 rhigh w=0.5u l="+um(2*il)+"u m=1 b=0\n")
-    elif N==1:
-        fp.write("XR1 n0 net0 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        fp.write("XR2 net0 n1 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        fp.write("XR3 n1 net1 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        fp.write("XR4 net1 n2 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-    else:
-        fp.write("XR1 n0 net0 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        for i in range(1,2*N-1):
-            fp.write("XR"+str(i+1)+net(i-1)+net(i)+" rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        fp.write("XR"+str(2*N)+net(2*N-2)+" n1 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        fp.write("XR"+str(2*N+1)+" n1"+net(2*N-1)+" rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        for i in range(1,2*N-1):
-            fp.write("XR"+str(2*N+i+1)+net(2*N+i-2)+net(2*N+i-1)+" rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-        fp.write("XR"+str(4*N)+net(4*N-3)+" n2 rhigh w=0.5u l="+um(il)+"u m=1 b=0\n")
-    fp.write(".ends\n")
-    fp.write("\n")
-    fp.write(".end\n")
-    fp.close()
-    return
-
 
 def inverter_tb(dut_spice="inverter.spice"):
     """Generates SPICE testbench for inverter.

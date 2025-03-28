@@ -7,6 +7,7 @@
 import user
 import pdk
 
+
 def adc_va(N: int):
     """Generates Verilog-A module for N bit ADC.
     N: bits of resolution.
