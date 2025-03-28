@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
 import pdk
-from rdac import rdac_tb, rdac, estimate_rdac_nl, rdac_ideal_tb
+from rdac import rdac_tb, rdac, estimate_r2rdac_nl, rdac_ideal_tb
 from bit import resistor_tb, inverter
 from utils import read_data
 
@@ -104,7 +104,7 @@ for i in range(N):
         abs_inl2[j] = max(abs(inl2))
         abs_dnl2[j] = max(abs(dnl2))
         # estimate nonlinearities with calculation
-        inl3, dnl3, _ = estimate_rdac_nl(resolution[i], R, Rn_mean, Rp_mean)
+        inl3, dnl3, _ = estimate_r2rdac_nl(resolution[i], R, Rn_mean, Rp_mean)
         abs_inl3[j] = max(abs(inl3))
         abs_dnl3[j] = max(abs(dnl3))
     axs[i].plot(r_ratio, abs_inl, 'b-o', label='simulated inl')

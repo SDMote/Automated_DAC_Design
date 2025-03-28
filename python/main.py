@@ -24,7 +24,7 @@ import user
 from pdk import *
 from utils import read_data, um, dbu, dbu2um
 from design import set_ron_ratio, measure_resistance, layout_params
-from rdac import rdac, rdac_tb, estimate_rdac_nl, r2r_ladder, rdac_tb_tran
+from rdac import rdac, rdac_tb, estimate_r2rdac_nl, r2r_ladder, rdac_tb_tran
 
 MIN_STEP = GRID/DBU
 Q = 2**RESOLUTION # number of codes
@@ -39,10 +39,10 @@ print("\nResistance estimation:")
 R = 1
 Rp = R/10
 if IDEAL_WIDTH: # on resistance ratio that minimizes both nonlinearities
-    inl, dnl, _, _ = estimate_rdac_nl(RESOLUTION, R, 0.2*Rp, Rp)
+    inl, dnl, _, _ = estimate_r2rdac_nl(RESOLUTION, R, 0.2*Rp, Rp)
     worst_inl_1 = max(abs(inl))
     worst_dnl_1 = max(abs(dnl))
-    inl, dnl, _, _ = estimate_rdac_nl(RESOLUTION, R, Rp, Rp)
+    inl, dnl, _, _ = estimate_r2rdac_nl(RESOLUTION, R, Rp, Rp)
     worst_inl_2 = max(abs(inl))
     worst_dnl_2 = max(abs(dnl))
     worst_inl_a = (worst_inl_1 - worst_inl_2)/(-0.8)
@@ -56,20 +56,20 @@ else:           # equal on-resistances
 
 
 # Estimate target R for target R_th
-inl, dnl, _ , _ = estimate_rdac_nl(RESOLUTION, R, ratio*Rp, Rp)
+inl, dnl, _ , _ = estimate_r2rdac_nl(RESOLUTION, R, ratio*Rp, Rp)
 # print(" With R=", R, "Rn=", ratio*Rp, "and Rp=", Rp)
 # print(" Estimate => INL: ", max(abs(inl)), " DNL: ", max(abs(dnl)))
 worst_nl = max(max(abs(inl)), max(abs(dnl)))
 R = R * worst_nl / MAX_NL       # first approximation
-inl, dnl, _ , _ = estimate_rdac_nl(RESOLUTION, R, ratio*Rp, Rp)
+inl, dnl, _ , _ = estimate_r2rdac_nl(RESOLUTION, R, ratio*Rp, Rp)
 worst_nl = max(max(abs(inl)), max(abs(dnl)))
 R = R * worst_nl / MAX_NL       # second approximation
 k = 1/(R // Rp)
-inl, dnl, _ , R_th = estimate_rdac_nl(RESOLUTION, R, ratio*k*R, k*R)
+inl, dnl, _ , R_th = estimate_r2rdac_nl(RESOLUTION, R, ratio*k*R, k*R)
 target_R = R * target_R_th / R_th
 target_Rp = k*target_R
 target_Rn = ratio*k*target_R
-inl, dnl, _ , R_th = estimate_rdac_nl(RESOLUTION, target_R, target_Rn, target_Rp)
+inl, dnl, _ , R_th = estimate_r2rdac_nl(RESOLUTION, target_R, target_Rn, target_Rp)
 print(" With R=", target_R, "Rn=", target_Rn, "and Rp=", target_Rp)
 print(" Estimate => INL: ", max(abs(inl)), " DNL: ", max(abs(dnl)), " R_th=", R_th)
 
@@ -134,7 +134,7 @@ while not done: #Rn > target_Rn or Rp > target_Rp:
     if step == 0 or step == -MIN_STEP:
         done = 1
         
-inl, dnl, _, R_th = estimate_rdac_nl(RESOLUTION, R, Rn, Rp)
+inl, dnl, _, R_th = estimate_r2rdac_nl(RESOLUTION, R, Rn, Rp)
 print(" With Wn=", um(Wn), " Wp=", um(Wp), " and NG=", fingers, ", then Rn=", Rn, "Rp=", Rp)
 print(" Estimate => INL: ", max(abs(inl)), " DNL: ", max(abs(dnl)), " R_th", R_th)
 
@@ -148,7 +148,7 @@ subprocess.run("ngspice -b sim/rdac_tb.spice -o sim/rdac.log > sim/temp.txt", sh
 data_dc = read_data("sim/rdac_dc.txt")
 digital_input = np.arange(Q)
 transfer_function = np.flip(data_dc[1][0:Q])
-tfunction_ref = digital_input * LOW_VOLTAGE / Q
+tfunction_ref = digital_input * LSB
 inl = (transfer_function - tfunction_ref)/LSB
 dnl = (transfer_function[1:] - transfer_function[:Q-1] - LSB)/LSB
 

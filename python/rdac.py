@@ -1,17 +1,17 @@
 # ============================================================================
-# Resistor DAC SPICE
+# Resistor DAC SPICE generation and estimation
 # Alfonso Cortes - Inria AIO
 # 
 # ============================================================================
 
 import numpy as np
-import subprocess
 import user
 import pdk
-from utils import net, read_data
+from utils import um, net
 from bit import inverter, r2r_ladder
+from dac import adc_va
 
-def rdac(N, Wn, Wp, NG=1, Lr=pdk.RES_MIN_L, Nr=0):
+def rdac(N, Wn, Wp, NG=1, Lr=pdk.RES_MIN_L, type=0, Nr=1):
     """Generates SPICE of RDAC, including SPICE for the inverter.
     N: bits of resolution.
     Wn: width of inverter NMOS.
@@ -21,27 +21,39 @@ def rdac(N, Wn, Wp, NG=1, Lr=pdk.RES_MIN_L, Nr=0):
     Nr: number of series resistors in each unit resistor R.
     return: string with RDAC ports.
     """
-    inverter(Wn, Wp, NGn=NG, NGp=NG)
-    r2r_ladder(L=Lr, N=Nr)
     fp = open("sim/rdac.spice", "w")
-    fp.write("** Resistive ladder DAC **\n")
-    fp.write("\n")
+    inverter(Wn, Wp, NGn=NG, NGp=NG)
+    if type == 0:   # R2R-ladder RDAC
+        r2r_ladder(L=Lr, N=Nr)
+        fp.write("** Resistive ladder DAC **\n")
+        fp.write("\n")
+        fp.write(".include \"r2r_bit_0.spice\"\n")
+        fp.write(".include \"r2r_bit_i.spice\"\n")
+    else:           # 
+        fp.write("** Binary-weighted resistor DAC **\n")
+        fp.write("\n")
     fp.write(".include \"inverter.spice\"\n")
-    fp.write(".include \"r2r_bit_0.spice\"\n")
-    fp.write(".include \"r2r_bit_i.spice\"\n")
     fp.write("\n")
     ports = "vss vdd"
     for i in range(N):
         ports = ports + " d" + str(i)
     ports = ports + " vout"
-    fp.write(".subckt rdac "+ports+"\n")
-    fp.write("X1 vss net0 net1 r2r_bit_0\n")
-    fp.write("X2 vss vdd d0 net1 inverter\n")
-    for i in range(N-2):
-        fp.write("X"+str(2*i+3)+net(2*i)+net(2*i+2)+net(2*i+3)+" r2r_bit_i\n")
-        fp.write("X"+str(2*i+4)+" vss vdd d"+str(i+1)+net(2*i+3)+" inverter\n")
-    fp.write("X"+str(2*N-1)+net(2*N-4)+" vout"+net(2*N-2)+" r2r_bit_i\n")
-    fp.write("X"+str(2*N)+" vss vdd d"+str(N-1)+net(2*N-2)+" inverter\n")
+    fp.write(".subckt dac "+ports+"\n")
+    if type == 0:
+        fp.write("X1 vss net0 net1 r2r_bit_0\n")
+        fp.write("X2 vss vdd d0 net1 inverter\n")
+        for i in range(N-2):
+            fp.write("X"+str(2*i+3)+net(2*i)+net(2*i+2)+net(2*i+3)+" r2r_bit_i\n")
+            fp.write("X"+str(2*i+4)+" vss vdd d"+str(i+1)+net(2*i+3)+" inverter\n")
+        fp.write("X"+str(2*N-1)+net(2*N-4)+" vout"+net(2*N-2)+" r2r_bit_i\n")
+        fp.write("X"+str(2*N)+" vss vdd d"+str(N-1)+net(2*N-2)+" inverter\n")
+    else:
+        index = 1
+        for i in range(N):
+            for j in range(2**i):
+                fp.write("X"+str(index)+" vss vdd d"+str(i)+net(index)+" inverter\n")
+                fp.write("XR"+str(index)+net(index)+" vout rhigh w=0.5u l="+um(Lr)+"u m=1 b=0\n")
+                index = index + 1
     fp.write(".ends\n")
     fp.write("\n")
     fp.write(".end\n")
@@ -49,74 +61,26 @@ def rdac(N, Wn, Wp, NG=1, Lr=pdk.RES_MIN_L, Nr=0):
     return ports
 
 
-def adc_va(N: int):
-    """Generates Verilog-A module for N bit ADC.
-    N: bits of resolution.
-    """
-    # Verilog-A model
-    ports = "out0"
-    for i in range(1,N):
-        ports = ports + ", out" + str(i)
-    fp = open("sim/adc_model.va", "w")
-    fp.write("`include \"constants.h\"\n")
-    fp.write("`include \"discipline.h\"\n")
-    fp.write("\n")
-    fp.write("module adc_va(in, "+ports+") ;\n")
-    fp.write("\tinput in ;\n")
-    fp.write("\toutput "+ports+" ;\n")
-    fp.write("\telectrical in, "+ports+" ;\n")
-    fp.write("\tparameter real vlow = 0, vhigh = "+str(pdk.LOW_VOLTAGE)+" ;\n")
-    fp.write("\tinteger sample ;\n")
-    fp.write("\n")
-    fp.write("\tanalog begin\n")
-    fp.write("\t\tsample = floor( "+str(2**N)+" * V(in) / vhigh ) ;\n")
-    for i in range(N):
-        fp.write("\t\tV(out"+str(i)+") <+ (sample & "+str(2**i)+")? vhigh : vlow ;\n")
-    fp.write("\tend\n")
-    fp.write("endmodule\n")
-    fp.close()
-    # Spice subcircuit
-    ports = "" 
-    for i in range(N):
-        ports = ports + " out" + str(i)
-    fp = open("sim/adc_model.spice", "w")
-    fp.write("** Verilog-A modeled ADC **\n")
-    fp.write("\n")
-    fp.write(".model adc_model adc_va ;\n")
-    fp.write("\n")
-    fp.write(".subckt adc in"+ports+"\n")
-    fp.write("\tnadc in"+ports+" adc_model\n")
-    fp.write(".ends\n")
-    fp.write("\n")
-    fp.write(".control\n")
-    fp.write("\tpre_osdi adc_model.osdi\n")
-    fp.write(".endc\n")
-    fp.write("\n")
-    fp.write(".end\n")
-    fp.close()
-    return
-
-
-def rdac_tb(N: int, dut_spice="rdac.spice", debug=False):
+def rdac_tb(N: int, debug=False):
     """Generates SPICE testbench for RDAC.
     N: bits of resolution.
-    dut_spice: name of the SPICE file with the inverter to be tested.
+    type: DAC topology to be tested.
     debug: when True, testbench saves internal voltages and currents.
     """
     adc_va(N)
-    lsb = pdk.LOW_VOLTAGE/2**N
+    lsb = pdk.LOW_VOLTAGE/2**N  # this is only to use the adc
     ports = ""
     for i in range(N):
         ports = ports + " d" + str(i)
     fp = open("sim/rdac_tb.spice", "w")
-    fp.write("** Resistive ladder DAC testbench **\n")
+    fp.write("** "+str(N)+"-Bit DAC testbench **\n")
     fp.write("\n")
     fp.write(pdk.LIB_MOS_TT)
     fp.write(pdk.LIB_RES_T)
-    fp.write(".include \""+dut_spice+"\"\n")
+    fp.write(".include \"rdac.spice\"\n")
     fp.write(".include \"adc_model.spice\"\n")
     fp.write("\n")
-    fp.write("x1 vss vdd" + ports + " vout rdac\n")
+    fp.write("x1 vss vdd" + ports + " vout dac\n")
     fp.write("x2 vin" + ports + " adc\n")
     fp.write("\n")
     fp.write("Vdd vdd 0 "+str(pdk.LOW_VOLTAGE)+"\n")
@@ -134,15 +98,20 @@ def rdac_tb(N: int, dut_spice="rdac.spice", debug=False):
         nodes = ""
         currents = ""
         voltages = ""
-        for i in range(N):
-            if i < N-1:
-                nodes = nodes + " x1.net" + str(2*i)
-            currents = currents + " @n.x1.x"+str(2*i+2)+".xm1.nsg13_lv_nmos[ids] @n.x1.x"+str(2*i+2)+".xm2.nsg13_lv_pmos[ids]"
-            voltages = voltages + " @n.x1.x"+str(2*i+2)+".xm1.nsg13_lv_nmos[vds] @n.x1.x"+str(2*i+2)+".xm2.nsg13_lv_pmos[vds]"
-        fp.write("save" + nodes + "\n")
+        if type == 0:
+            for i in range(N):
+                if i < N-1:
+                    nodes = nodes + " x1.net" + str(2*i)
+                currents = currents + " @n.x1.x"+str(2*i+2)+".xm1.nsg13_lv_nmos[ids] @n.x1.x"+str(2*i+2)+".xm2.nsg13_lv_pmos[ids]"
+                voltages = voltages + " @n.x1.x"+str(2*i+2)+".xm1.nsg13_lv_nmos[vds] @n.x1.x"+str(2*i+2)+".xm2.nsg13_lv_pmos[vds]"
+            fp.write("save" + nodes + "\n")
+        else:
+            for i in range(N):
+                currents = currents + " @n.x1.x"+str(2**i)+".xm1.nsg13_lv_nmos[ids] @n.x1.x"+str(2**i)+".xm2.nsg13_lv_pmos[ids]"
+                voltages = voltages + " @n.x1.x"+str(2**i)+".xm1.nsg13_lv_nmos[vds] @n.x1.x"+str(2**i)+".xm2.nsg13_lv_pmos[vds]"
         fp.write("save" + currents + "\n")
         fp.write("save" + voltages + "\n")
-    fp.write("dc Vin "+str(lsb/2)+" "+str(pdk.LOW_VOLTAGE)+" "+str(lsb)+"\n")
+    fp.write("dc Vin "+str(lsb/2)+" "+str(lsb*2**N)+" "+str(lsb)+"\n")
     if debug:
         fp.write("wrdata "+user.SIM_PATH+"/rdac_dc.txt vout"+nodes+"\n")
         fp.write("wrdata "+user.SIM_PATH+"/rdac_ids.txt"+currents+"\n")
@@ -156,13 +125,17 @@ def rdac_tb(N: int, dut_spice="rdac.spice", debug=False):
     return
 
 
-def rdac_tb_tran(N: int, C, dut_spice="rdac.spice"):
+def rdac_tb_tran(N: int, C, type=0):
     """Generates SPICE testbench to measure RDAC worst rise time.
     N: bits of resolution.
     C: load capacitance in picofarad.
-    dut_spice: name of the SPICE file with the inverter to be tested.
+    type: DAC topology to be tested.
     """
-    lsb = pdk.LOW_VOLTAGE/2**N
+    dut_spice="rdac.spice"
+    if type == 0:
+        lsb = pdk.LOW_VOLTAGE/2**N
+    else:
+        lsb = pdk.LOW_VOLTAGE/(2**N-1)
     vin = " vin"
     fp = open("sim/rdac_tb_tran.spice", "w")
     fp.write("** Resistive ladder DAC testbench **\n")
@@ -193,20 +166,13 @@ def rdac_tb_tran(N: int, C, dut_spice="rdac.spice"):
 
 
 def rdac_ideal_tb(N: int, i: int, R, Rn, Rp):
-    """Generates SPICE testbench for ideal RDAC.
+    """Generates SPICE testbench for ideal R2R-ladder RDAC.
     N: bits of resolution.
     i: input code.
     R: Unit resistance value
     Rn: NMOS on resistance
     Rp: PMOS on resistance
     """
-    # digital_input = np.arange(2**N)
-    # lsb = pdk.LOW_VOLTAGE/(2**N)
-    # transfer_function_ref = digital_input * pdk.LOW_VOLTAGE / 2**N
-
-    # transfer_function = np.zeros(2**N)
-    # voltages = np.zeros(N)
-    # for i in range(2**N):
     fp = open("sim/rdac_ideal_tb.spice", "w")
     fp.write("** Ideal Resistive ladder DAC testbench **\n")
     fp.write("\n")
@@ -218,12 +184,12 @@ def rdac_ideal_tb(N: int, i: int, R, Rn, Rp):
         fp.write("R"+str(N+j+1)+net(j+1)+net(N+j)+" "+str(2*R)+"\n")
     fp.write("R"+str(2*N)+" vout"+net(2*N-1)+" "+str(2*R)+"\n")
     for j in range(N):
-        if (i//2**j)%2: #j == i:
+        if (i//2**j)%2:
             fp.write("R"+str(2*N+j+1)+" d"+str(j)+net(N+j)+" "+str(Rp)+"\n")
         else:
                 fp.write("R"+str(2*N+j+1)+" d"+str(j)+net(N+j)+" "+str(Rn)+"\n")
     for j in range(N):
-        if (i//2**j)%2: #j == i:
+        if (i//2**j)%2:
             fp.write("Vd"+str(j)+" d"+str(j)+" 0 "+str(pdk.LOW_VOLTAGE)+"\n")
         else:
             fp.write("Vd"+str(j)+" d"+str(j)+" 0 0\n")
@@ -236,22 +202,10 @@ def rdac_ideal_tb(N: int, i: int, R, Rn, Rp):
     fp.write("\n")
     fp.write(".end\n")
     fp.close()
-    #     subprocess.run("ngspice -b sim/rdac_ideal_tb.spice -o sim/rdac.log > sim/temp.txt", shell=True, check=True)
-    #     data_dc = read_data("sim/rdac_op.txt")
-    #     # voltages[i] = data_dc[1][0]
-    #     transfer_function[i] = data_dc[1][0]
-    # for j in range(N):
-    #     voltages[j] = transfer_function[2**j]
-    # for i in range(2**N):
-    #     for j in range(N):
-    #         transfer_function[i] = transfer_function[i] + ((i//2**j)%2)*voltages[j]
-    # inl = (transfer_function - transfer_function_ref)/lsb
-    # dnl = (transfer_function[1:] - transfer_function[:2**N-1] - lsb)/lsb
-    # return inl, dnl, voltages, transfer_function
     return
 
 
-def estimate_rdac_nl(N: int, R, Rn, Rp):
+def estimate_r2rdac_nl(N: int, R, Rn, Rp):
     """Estimate RDAC nonlinearities.
     N: bits of resolution.
     R: RDAC unit resistance.

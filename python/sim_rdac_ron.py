@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import subprocess
 import pdk
 from utils import read_data
-from rdac import rdac, rdac_tb, estimate_rdac_nl
+from rdac import rdac, rdac_tb, estimate_r2rdac_nl
 from bit import resistor_tb
 
 PMOS_W = 2.5*NMOS_W
@@ -64,7 +64,7 @@ Rp_mean = np.mean(Rp)
 print("R :", R)
 print("Rn :", Rn_mean)
 print("Rp :", Rp_mean)
-inl2, dnl2, _, _ = estimate_rdac_nl(RESOLUTION, R, Rn_mean, Rp_mean)
+inl2, dnl2, _, _ = estimate_r2rdac_nl(RESOLUTION, R, Rn_mean, Rp_mean)
 # inl3, dnl3, _, _ = estimate_rdac_nl(RESOLUTION, R, Rn_min, Rp_max)
 # inl4, dnl4, _, _ = estimate_rdac_nl(RESOLUTION, R, Rn_max, Rp_min)
 print("INL: ",max(abs(inl2)))

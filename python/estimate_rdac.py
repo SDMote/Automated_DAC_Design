@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import subprocess
 import pdk
 from utils import read_data
-from rdac import estimate_rdac_nl, rdac_ideal_tb
+from rdac import estimate_r2rdac_nl, rdac_ideal_tb
 
 R = 1500
 
@@ -61,7 +61,7 @@ for i in range(N):
         # inl[j], dnl[j], _ = ideal_rdac_sim(int(resolution[i]), 2*R*2**(STEP*i), ratio[j]*R, R)
         # abs_inl[i][j] = max(abs(inl[j]))
         # abs_dnl[i][j] = max(abs(dnl[j]))
-        est_inl, est_dnl, _ = estimate_rdac_nl(int(resolution[i]), 2*R*2**(STEP*i), ratio[j]*R, R)
+        est_inl, est_dnl, _ = estimate_r2rdac_nl(int(resolution[i]), 2*R*2**(STEP*i), ratio[j]*R, R)
         abs_inl2[i][j] = max(abs(est_inl))
         abs_dnl2[i][j] = max(abs(est_dnl))
 
