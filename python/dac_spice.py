@@ -6,6 +6,18 @@
 
 import user
 import pdk
+from rdac_spice import rdac
+
+
+def dac(N: int, topology, params):
+    match topology:
+        case 0:
+            rdac(N, type=0, **params)
+        case 1:
+            rdac(N, type=1, **params)
+        case _:
+            print("Error")
+    return
 
 
 def adc_va(N: int):
@@ -133,7 +145,7 @@ def dac_tb_tran(N: int, C, type):
         Vhigh = pdk.LOW_VOLTAGE
     vin = " vin"
     fp = open("sim/dac_tb_tran.spice", "w")
-    fp.write("** Resistive ladder DAC testbench **\n")
+    fp.write("** "+str(N)+"-Bit DAC transient testbench **\n")
     fp.write("\n")
     fp.write(pdk.LIB_MOS_TT)
     fp.write(pdk.LIB_RES_T)

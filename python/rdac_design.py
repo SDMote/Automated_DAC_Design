@@ -9,7 +9,7 @@ import subprocess
 from pdk import *
 from utils import read_data, dbu, um
 from spice import inverter
-from design import measure_resistance, layout_params
+from design import measure_resistance
 from dac_spice import dac_tb, dac_tb_tran
 from rdac_spice import rdac, r2r_ladder, estimate_r2rdac_nl
 
@@ -67,15 +67,8 @@ def set_ron_ratio(Wn, Wp, ratio, NF=1):
     return Rn, Rp, Wn, Wp
 
 
-def design_r2r_rdac(N, ideal_width, Nr, max_nl, max_time, c_load, POLY_W=300):
-    TYPE = 0
+def design_r2r_rdac(N, ideal_width, Nr, max_nl, target_R_th, POLY_W):
     MIN_STEP = GRID/DBU
-    Q = 2**N # number of codes
-    LSB = LOW_VOLTAGE/Q
-    target_R_th = max_time * 1e-6 / (2.2 * c_load * 1e-12)     # 10%-90%, rise_time = 2.2*tau = 2.2*R_th*C_load
-    print("Resolution: ", N, "\t\tNº of series resistors: ", Nr, "\tTarget max NL:", max_nl)
-    print("Target max transition time:", max_time, "us, with load of", c_load, "pF (Target output resistance:", target_R_th, ")")
-    
     # Estimate on-resistances ratio
     print("\nResistance estimation:")
     R = 1
@@ -135,17 +128,17 @@ def design_r2r_rdac(N, ideal_width, Nr, max_nl, max_time, c_load, POLY_W=300):
     print("\nInverter size simulation:")
     Wn = Wp = MOS_MIN_W
     rdac(2, Wn, Wp, 1, Lr, 0, Nr)
-    dac_tb(2, debug=True, type=TYPE)
+    dac_tb(2, debug=True, type=0)
     subprocess.run("openvaf sim/adc_model.va -o sim/adc_model.osdi", shell=True, check=True) 
     Rn, Rp, Wn, Wp = set_ron_ratio(Wn, Wp, ratio)   # first approximation
     equivalent_inverter_width = 2 * max(Wp * Rp / target_Rp, Wn * Rn / target_Rn)
-    inverter_const_width = max(RHIa/2 + M1b, GATd+POLY_W/2, (NWc+NWd)/2, (300+PSDb+PSDc1)/2) + max(M1b, GATd + CNTd) + CNTd + CNTa + GATb/2
+    INVERTER_CONST_WIDTH = 2 * ( max(RHIa/2 + M1b, GATd+POLY_W/2, (NWc+NWd)/2, (300+PSDb+PSDc1)/2) + max(M1b, GATd + CNTd) + CNTd + CNTa + GATb/2 )
     if Nr == 2:     # fixed width ladder layout 2
-        HALF_WIDTH = 3960/2   
+        BIT_WIDTH = 3960   
     else:                   # variable width ladder layout 1
-        HALF_WIDTH = (Lr + 1000)/2 # check constant from layout
-    max_inverter_width = 2*(HALF_WIDTH - inverter_const_width)  
-    fingers = int(equivalent_inverter_width // max_inverter_width + 1)   # Estimate inverter equivalent width to determine NF
+        BIT_WIDTH = Lr + 1000 # check constant from layout
+    MAX_INVERTER_WIDTH = BIT_WIDTH - INVERTER_CONST_WIDTH  
+    fingers = int(equivalent_inverter_width // MAX_INVERTER_WIDTH + 1)   # Estimate inverter equivalent width to determine NF
     if fingers > 1:
         Wn = Wp = MOS_MIN_W * fingers
         Rn, Rp, Wn, Wp = set_ron_ratio(Wn, Wp, ratio, fingers)
@@ -160,7 +153,7 @@ def design_r2r_rdac(N, ideal_width, Nr, max_nl, max_time, c_load, POLY_W=300):
             Wp = Wp + fingers * dbu(0.5 * step / ratio)
         Rn, Rp, Wn, Wp = set_ron_ratio(Wn, Wp, ratio, fingers)
         equivalent_inverter_width = 2 * max(Wp * Rp / target_Rp, Wn * Rn / target_Rn)
-        fingers_next = int(equivalent_inverter_width // max_inverter_width + 1)
+        fingers_next = int(equivalent_inverter_width // MAX_INVERTER_WIDTH + 1)
         if fingers != fingers_next:
             fingers = fingers_next
             if Wn < MOS_MIN_W * fingers or Wp < MOS_MIN_W * fingers:
@@ -176,49 +169,11 @@ def design_r2r_rdac(N, ideal_width, Nr, max_nl, max_time, c_load, POLY_W=300):
     inl, dnl, _, R_th = estimate_r2rdac_nl(N, R, Rn, Rp)
     print(" With Wn=", um(Wn), " Wp=", um(Wp), " and NG=", fingers, ", then Rn=", Rn, "Rp=", Rp)
     print(" Estimate => INL: ", max(abs(inl)), " DNL: ", max(abs(dnl)), " R_th", R_th)
-
-    # Simulate full circuit
-    print('\nTop-level simulation:')
-    rdac(N, Wn, Wp, fingers, Lr, TYPE, Nr)
-    dac_tb(N)
-    subprocess.run("openvaf sim/adc_model.va -o sim/adc_model.osdi", shell=True, check=True) 
-    subprocess.run("ngspice -b sim/dac_tb.spice -o sim/dac.log > sim/temp.txt", shell=True, check=True) #!ngspice -b rdac.spice
-    data_dc = read_data("sim/dac_dc.txt")
-    digital_input = np.arange(Q)
-    transfer_function = np.flip(data_dc[1][0:Q])
-    tfunction_ref = digital_input * LSB
-    inl = (transfer_function - tfunction_ref)/LSB
-    dnl = (transfer_function[1:] - transfer_function[:Q-1] - LSB)/LSB
-
-    dac_tb_tran(N, c_load, TYPE)
-    subprocess.run("ngspice -b sim/dac_tb_tran.spice -o sim/dac.log > sim/temp.txt", shell=True, check=True) #!ngspice -b rdac.spice
-    data = read_data("sim/dac_tran.txt")
-    rise_time = data[1][0]
-    R_th = rise_time / (2.2 * c_load * 1e-12)
-    print(' Simulate => INL:', max(abs(inl)), ' DNL:', max(abs(dnl)), " Worst transition time:", rise_time)
-    return Wn, Wp, fingers, Lr
+    params = {'Wn':Wn, 'Wp':Wp, 'Ng':fingers, 'Lr':Lr, 'Nr':Nr}
+    return params, BIT_WIDTH
 
 
-def layout_2r2_rdac(N, Wn, Wp, fingers, RES_L, RES_NUMBER, POLY_W=300):
-    # ============================================================================
-    if RES_NUMBER == 2:     # fixed width ladder layout 2
-        HALF_WIDTH = 3960/2   
-    else:                   # variable width ladder layout 1
-        HALF_WIDTH = (RES_L + 1000)/2 # check constant from layout
-    # Layout generation
-    print('\nGenerating layout:')
-    layout_params(N, Wn, Wp, fingers, RES_L, RES_NUMBER, HALF_WIDTH, POLY_W)   # set layout generator parameters to match simulated circuit
-    subprocess.run("klayout -zz -r ../klayout/python/rdac.py -j ../klayout/", shell=True, check=True) # call layout generation with klayout
+def design_weighted_rdac():
 
-    print("\nVerification:")
-    # Run DRC
-    print(" Running DRC")
-    subprocess.run("klayout -zz -r "+user.KLAYOUT_DRC+" -rd in_gds=\"../klayout/rdac.gds\" -rd report_file=\"../klayout/drc/sg13g2_maximal.lyrdb\" >../klayout/drc/drc.log", shell=True, check=True)
-
-    # Extract spice netlist from GDS
-    subprocess.run("magic -rcfile "+user.MAGICRC_PATH+" -noconsole -nowrapper ../magic/extract_dac.tcl > sim/temp.txt", shell=True, check=True)
-
-    # Perform LVS
-    print(" Running LVS")
-    subprocess.run("netgen -batch lvs \"../magic/dac.spice dac\" \"sim/dac.spice dac\" "+user.NETGEN_SETUP+" ../netgen/comp.out > sim/temp.txt", shell=True, check=True)
-    return
+    params = {'Wn':500, 'Wp':1000, 'Ng':2, 'Lr':1000}
+    return params

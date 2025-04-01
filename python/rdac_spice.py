@@ -70,7 +70,7 @@ def r2r_ladder(L=pdk.RES_MIN_L, N=1):
     return
 
 
-def rdac(N, Wn, Wp, NG=1, Lr=pdk.RES_MIN_L, type=0, Nr=1):
+def rdac(N, Wn, Wp, Ng=1, Lr=pdk.RES_MIN_L, type=0, Nr=1):
     """Generates SPICE of RDAC, including SPICE for the inverter.
     N: bits of resolution.
     Wn: width of inverter NMOS.
@@ -81,14 +81,14 @@ def rdac(N, Wn, Wp, NG=1, Lr=pdk.RES_MIN_L, type=0, Nr=1):
     return: string with RDAC ports.
     """
     fp = open("sim/dac.spice", "w")
-    inverter(Wn, Wp, NGn=NG, NGp=NG)
+    inverter(Wn, Wp, NGn=Ng, NGp=Ng)
     if type == 0:   # R2R-ladder RDAC
         r2r_ladder(L=Lr, N=Nr)
         fp.write("** Resistive ladder DAC **\n")
         fp.write("\n")
         fp.write(".include \"r2r_bit_0.spice\"\n")
         fp.write(".include \"r2r_bit_i.spice\"\n")
-    else:           # 
+    else:           # binary-weighted RDAC
         fp.write("** Binary-weighted resistor DAC **\n")
         fp.write("\n")
     fp.write(".include \"inverter.spice\"\n")
