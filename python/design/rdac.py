@@ -8,10 +8,67 @@ import numpy as np
 import subprocess
 from pdk import *
 from utils import read_data, dbu, um
-from spice import inverter
-from design import measure_resistance
-from dac_spice import dac_tb, dac_tb_tran
-from rdac_spice import rdac, r2r_ladder, estimate_r2rdac_nl
+from spice.common import inverter
+from design.common import measure_resistance
+from spice.dac import dac_tb, dac_tb_tran
+from spice.rdac import rdac, r2r_ladder
+
+
+def estimate_r2rdac_nl(N: int, R, Rn, Rp):
+    """Estimate RDAC nonlinearities.
+    N: bits of resolution.
+    R: RDAC unit resistance.
+    Rn: NMOS on resistance.
+    Rp: PMOS on resistance.
+    return: INL, DNL arrays of size 2^N and 2^N-1 (normalized to LSB).
+    """
+    Q = int(2**N)
+    digital_input = np.arange(Q)
+    lsb = LOW_VOLTAGE/Q
+    transfer_function_ref = digital_input * LOW_VOLTAGE / Q
+
+    temp = [2*R + Rn, 2*R + Rp]
+    r_1 = temp[1]
+    r_2 = np.zeros((N, Q//2))
+    r_3 = np.zeros((N, Q//2))
+    r_4 = np.zeros(N)
+    # r_th = np.zeros(Q)
+    k = np.zeros((N, Q//2))
+
+    r_2[0][0] = 2*R
+    for j in range(N-1):
+        for i in range(2**j):
+            r_2[j+1][i] = R + temp[0]*r_2[j][i]/(temp[0] + r_2[j][i])
+            r_2[j+1][2**j+i] = R + temp[1]*r_2[j][i]/(temp[1] + r_2[j][i])
+    r_th = r_2[N-1][Q//2-1] * temp[1] / (r_2[N-1][Q//2-1] + temp[1])
+    # for i in range(Q//2):
+    #     r_th[2*i] = r_2[N-1][i] * temp[0] / (r_2[N-1][i] + temp[0])
+    #     r_th[2*i+1] = r_2[N-1][i] * temp[1] / (r_2[N-1][i] + temp[1])
+
+    r_3[N-1][0] = float('inf')
+    r_3[N-2][0] = R + temp[0]
+    r_3[N-2][1] = R + temp[1]
+    k[N-1][0] = 1
+    k[N-2][0] = temp[0] / (temp[0] + R)
+    k[N-2][1] = temp[1] / (temp[1] + R)
+    for j in range(N-3, -1, -1):
+        for i in range(2**(N-1-j)):
+            temp2 = temp[i%2]*r_3[j+1][i//2]/(temp[i%2] + r_3[j+1][i//2])
+            r_3[j][i] = R + temp2
+            k[j][i] = k[j+1][i//2] * temp2/r_3[j][i]
+
+    transfer_function = np.zeros(Q)
+    for i in range(Q):
+        for j in range(N):
+            if (i//2**j)%2:
+                if j == N-1:
+                    r_4 = r_2[N-1][i%(2**j)]
+                else:
+                    r_4 = r_2[j][i%(2**j)]*r_3[j][i//2**(j+1)]/(r_2[j][i%(2**j)]+r_3[j][i//2**(j+1)])
+                transfer_function[i] = transfer_function[i] + LOW_VOLTAGE * k[j][i//2**(j+1)] * r_4 / (r_4 + r_1)
+    inl = (transfer_function - transfer_function_ref)/lsb
+    dnl = (transfer_function[1:] - transfer_function[:Q-1] - lsb)/lsb
+    return inl, dnl, transfer_function, r_th
 
 
 def sim2bits (Wn, Wp, NF=1):
@@ -173,7 +230,27 @@ def design_r2r_rdac(N, ideal_width, Nr, max_nl, target_R_th, POLY_W):
     return params, BIT_WIDTH
 
 
-def design_weighted_rdac():
+def design_weighted_rdac(N, max_nl, target_R_th, POLY_W):
+    MIN_STEP = GRID/DBU
+    ratio = 1
 
-    params = {'Wn':500, 'Wp':1000, 'Ng':2, 'Lr':1000}
+    target_R = 1000
+    # Simulate required resistance lenght fot target R (iteratively)
+    print("\nResistor size simulation:")
+    Lr = RES_MIN_L  # default unit resistor lenght (total for all series devices)
+    R = measure_resistance(Lr)
+    # r_resistivity = R / RES_L
+    # print("R min: ", R, " resistivity: ", r_resistivity)
+    step = dbu(Lr * target_R / R - Lr)
+    done = 0
+    while not done and step != 0:
+        if abs(step) <= MIN_STEP:
+            done = 1
+        Lr = Lr + step
+        R = measure_resistance(Lr)
+        step = dbu(Lr * target_R / R - Lr)
+    r2r_ladder(Lr)       # editing the ladder is enough to update unit resistor lenght
+    print(" With Lr=", um(Lr), "R=", R)
+
+    params = {'Wn':500, 'Wp':1000, 'Ng':2, 'Lr':Lr}
     return params

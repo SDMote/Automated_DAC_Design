@@ -6,7 +6,7 @@
 
 import subprocess
 from utils import read_data
-from spice import resistor_tb
+from spice.common import resistor_tb
 
 
 def measure_resistance(Lr, Nr=1):

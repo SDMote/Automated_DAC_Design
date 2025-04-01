@@ -17,9 +17,10 @@ import matplotlib.pyplot as plt
 import subprocess
 import pdk
 from utils import read_data
-from dac_spice import dac_tb
-from rdac_spice import rdac, estimate_r2rdac_nl
-from spice import resistor_tb
+from spice.dac import dac_tb
+from spice.rdac import rdac
+from spice.common import resistor_tb
+from design.rdac import estimate_r2rdac_nl
 
 PMOS_W = 2.5*NMOS_W
 N = 2**RESOLUTION

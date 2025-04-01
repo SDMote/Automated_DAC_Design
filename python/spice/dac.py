@@ -1,12 +1,12 @@
 # ============================================================================
-# DAC SPICE 
+# DAC SPICE generation
 # Alfonso Cortes - Inria AIO
 # 
 # ============================================================================
 
 import user
 import pdk
-from rdac_spice import rdac
+from spice.rdac import rdac
 
 
 def dac(N: int, topology, params):
