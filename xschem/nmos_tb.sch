@@ -20,7 +20,7 @@ spiceprefix=X
 C {iopin.sym} -100 -80 1 0 {name=p2 lab=S}
 C {iopin.sym} -140 -140 2 0 {name=p1 lab=G}
 C {iopin.sym} -100 -170 3 0 {name=p3 lab=D}
-C {code_shown.sym} 20 -270 0 0 {name=s1 only_toplevel=false value="
+C {code_shown.sym} 20 -350 0 0 {name=s1 only_toplevel=false value="
 .lib /foss/pdks/ihp-sg13g2/libs.tech/ngspice/models/cornerMOSlv.lib mos_tt
 
 Vd D 0 1.2
@@ -29,7 +29,13 @@ Vg G 0 1.2
 
 .control
 save v(d) @n.xm1.nsg13_lv_nmos[ids]
-dc Vd 0.01 1.5 0.01
+dc Vd 0.01 1.2 0.01
+let R=v(d)/@n.xm1.nsg13_lv_nmos[ids]
+let R0=R[0]
+let R1=1.1*R0
+meas dc v1 FIND v(d) WHEN R=R1
+let k=1.2/v1 - 1
+print k
 plot @n.xm1.nsg13_lv_nmos[ids]
 plot v(d)/@n.xm1.nsg13_lv_nmos[ids]
 .endc
