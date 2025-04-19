@@ -6,17 +6,18 @@
 
 import subprocess
 import pdk
-import user
+from user import *
+from layout.rdac import layout_rdac
 
 
-def write_layout_params(N=4, type=0, Wn=0.3, Wp=0.3, Ng=1, Lr=pdk.RES_MIN_L, Nr=1, Wbit=3850, Wpoly=pdk.MOS_MIN_L):
+def write_layout_params(N=4, type=0, Wn=300, Wp=300, Ng=1, Lr=pdk.RES_MIN_L, Nr=1, Wbit=3850, Wpoly=pdk.MOS_MIN_L):
     """Generates python file with parameters for layout generation.
     N: bits of resolution.
     Wn: width of inverter NMOS.
     Wp: width of inverter PMOS.
     Lr: lenght of RDAC unit resistor.
     """
-    fp = open("../klayout/python/params.py", "w")
+    fp = open(PROJECT_ROOT + "/python/layout/params.py", "w")
     fp.write("# ============================================================================\n")
     fp.write("# DAC layout parameters\n")
     fp.write("#\n")
@@ -39,21 +40,20 @@ def write_layout_params(N=4, type=0, Wn=0.3, Wp=0.3, Ng=1, Lr=pdk.RES_MIN_L, Nr=
 
 def layout_dac(N, type, params):
     write_layout_params(N, type, **params)   # set layout generator parameters to match simulated circuit
-    match type:
-        case 0:
-            subprocess.run("klayout -zz -r ../klayout/python/rdac.py -j ../klayout/", shell=True, check=True) # call layout generation with klayout
-        case 1:
-            pass
-        case _:
-            print("Error")
+    if type == 0:
+        layout_rdac(N, **params) # call layout generation with klayout
+    elif type == 1:
+        pass
+    else:
+        print("Error")
 
     print("\nVerification:")
     # Run DRC
     print(" Running DRC")
-    subprocess.run("klayout -zz -r "+user.KLAYOUT_DRC+" -rd in_gds=\"../klayout/dac.gds\" -rd report_file=\"../klayout/drc/sg13g2_maximal.lyrdb\" >../klayout/drc/drc.log", shell=True, check=True)
+    subprocess.run("klayout -zz -r "+KLAYOUT_DRC+" -rd in_gds=\"../klayout/dac.gds\" -rd report_file=\"../klayout/drc/sg13g2_maximal.lyrdb\" >../klayout/drc/drc.log", shell=True, check=True)
     # Extract spice netlist from GDS
-    subprocess.run("magic -rcfile "+user.MAGICRC_PATH+" -noconsole -nowrapper ../magic/extract_dac.tcl > sim/temp.txt", shell=True, check=True)
+    subprocess.run("magic -rcfile "+MAGICRC_PATH+" -noconsole -nowrapper ../magic/extract_dac.tcl > sim/temp.txt", shell=True, check=True)
     # Perform LVS
     print(" Running LVS")
-    subprocess.run("netgen -batch lvs \"../magic/dac.spice dac\" \"sim/dac.spice dac\" "+user.NETGEN_SETUP+" ../netgen/comp.out > sim/temp.txt", shell=True, check=True)
+    subprocess.run("netgen -batch lvs \"../magic/dac.spice dac\" \"sim/dac.spice dac\" "+NETGEN_SETUP+" ../netgen/comp.out > sim/temp.txt", shell=True, check=True)
     return

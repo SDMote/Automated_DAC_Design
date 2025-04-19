@@ -17,3 +17,4 @@ NETGEN_SETUP = PDKPATH + "/libs.tech/netgen/ihp-sg13g2_setup.tcl"
 KLAYOUT_DRC = PDKPATH + "/libs.tech/klayout/tech/drc/sg13g2_maximal.lydrc"
 
 SIM_PATH = PROJECT_ROOT + "/python/sim"
+LAYOUT_PATH = PROJECT_ROOT + "/klayout"

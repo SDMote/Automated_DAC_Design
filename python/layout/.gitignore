@@ -1,0 +1,7 @@
+params.py
+*.spice
+*.va
+*test*
+*old*
+*draft*
+
