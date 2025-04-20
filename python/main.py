@@ -47,5 +47,5 @@ inl, dnl, rise_time = simulate_dac(RESOLUTION, TOPOLOGY, spice_params, C_LOAD)
 
 # # Layout generation
 print('\nGenerating layout:')
-layout_dac(RESOLUTION, TOPOLOGY, layout_params)
+layout_dac(RESOLUTION, TOPOLOGY, layout_params, drc=1)
 

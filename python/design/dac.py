@@ -12,6 +12,13 @@ from spice.dac import dac, dac_tb, dac_tb_tran
 from design.rdac import design_r2r_rdac, design_weighted_rdac
 
 
+def help():
+    file = open("help.txt", 'r')
+    file_content = file.read()
+    print(file_content)
+    return
+
+
 def design_dac(N, type, max_nl, target_R_th, options, Wpoly):
     match type:
         case 0:     # R2R-ladder RDAC

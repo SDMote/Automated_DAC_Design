@@ -38,7 +38,7 @@ def write_layout_params(N=4, type=0, Wn=300, Wp=300, Ng=1, Lr=pdk.RES_MIN_L, Nr=
     return
 
 
-def layout_dac(N, type, params):
+def layout_dac(N, type, params, drc=0):
     write_layout_params(N, type, **params)   # set layout generator parameters to match simulated circuit
     if type == 0:
         layout_rdac(N, **params) # call layout generation with klayout
@@ -48,9 +48,10 @@ def layout_dac(N, type, params):
         print("Error")
 
     print("\nVerification:")
-    # Run DRC
-    print(" Running DRC")
-    subprocess.run("klayout -zz -r "+KLAYOUT_DRC+" -rd in_gds=\"../klayout/dac.gds\" -rd report_file=\"../klayout/drc/sg13g2_maximal.lyrdb\" >../klayout/drc/drc.log", shell=True, check=True)
+    if drc == 1:    # only run if the complete KLayout tool is installed
+        # Run DRC
+        print(" Running DRC")
+        subprocess.run("klayout -zz -r "+KLAYOUT_DRC+" -rd in_gds=\"../klayout/dac.gds\" -rd report_file=\"../klayout/drc/sg13g2_maximal.lyrdb\" >../klayout/drc/drc.log", shell=True, check=True)
     # Extract spice netlist from GDS
     subprocess.run("magic -rcfile "+MAGICRC_PATH+" -noconsole -nowrapper ../magic/extract_dac.tcl > sim/temp.txt", shell=True, check=True)
     # Perform LVS

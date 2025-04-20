@@ -43,9 +43,9 @@ def layout_rdac(N, Wn=300, Wp=300, Ng=1, Lr=RES_MIN_L, Nr=1, Wbit=3850, Wpoly=30
     layer_psd   = layout.layer(14, 0)
 
     ## Load cells
-    layout.read("../klayout/inverter.gds")          # load inverter GDS
-    layout.read("../klayout/r2r_bit_i.gds")         # load R-2R GDS
-    layout.read("../klayout/r2r_bit_0.gds")         # load 2R-2R GDS
+    layout.read(LAYOUT_PATH + "/inverter.gds")          # load inverter GDS
+    layout.read(LAYOUT_PATH + "/r2r_bit_i.gds")         # load R-2R GDS
+    layout.read(LAYOUT_PATH + "/r2r_bit_0.gds")         # load 2R-2R GDS
     inverter_cell = layout.cell("inverter")
     r2r_bit_i_cell = layout.cell("r2r_bit_i")
     r2r_bit_0_cell = layout.cell("r2r_bit_0")
