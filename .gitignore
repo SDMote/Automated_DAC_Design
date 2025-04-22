@@ -4,7 +4,6 @@
 *.osdi
 *.log
 *.pdf
-*.txt
 *.zip
 *test*
 

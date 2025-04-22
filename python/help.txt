@@ -1,0 +1,11 @@
+Set the TOPOLOGY constant to choose one of the supported topologies: 
+0: R2R-ladder DAC
+
+Set the constants for general specifications:
+- RESOLUTION:	Number of bits of resolution (2-16 bits)
+- MAX_NL:	Target maximum nonlinearity (LSB), for both Integral Non-Linearity (INL) and Differential Non-Linearity (DNL)
+
+Set the constants for topology-dependent specifications:
+- R2R-ladder:
+	- IDEAL_WIDTH: 1 to use ideal ratio for PMOS and NMOS on-resistances, or 0 to use equall on-resistances for both devices
+	- RES_NUMBER
