@@ -19,13 +19,13 @@ from layout.utils import *
 from layout.inverter import layout_inverter
 from layout.r2r_ladder import layout_r2r_rdac
 
-def layout_rdac(N, Wn=300, Wp=300, Ng=1, Lr=RES_MIN_L, Nr=1, Wbit=3850, Wpoly=300):
+def layout_rdac(N, Wn, Wp, Ng, Lr, Nr, Wbit, Wpoly):
     MOS_LENGHT = MOS_MIN_L
     RES_W = RHIa
     M1_W = RES_W
     M1_WIDTH = dbu2um(M1_W)
     
-    layout_inverter(Wn, Wp, Ng, MOS_LENGHT, Wbit, Wpoly)
+    layout_inverter(Wn, Wp, Ng, MOS_LENGHT, Wbit//2, Wpoly)
     layout_r2r_rdac(Lr, Nr)
 
     ## Initialize layout

@@ -41,6 +41,13 @@ inl, dnl, rise_time = simulate_dac(RESOLUTION, TOPOLOGY, spice_params, C_LOAD)
 Q = 2**RESOLUTION
 lsb = pdk.LOW_VOLTAGE/Q
 digital_input = np.arange(Q)
+
+
+# # Layout generation
+print('\nGenerating layout:')
+layout_dac(RESOLUTION, TOPOLOGY, layout_params, drc=1)
+
+
 # Plot nonlinearities
 fig, axs = plt.subplots(2, 1, sharex=True)
 axs[0].plot(digital_input, inl, label='estimated inl')
@@ -52,9 +59,3 @@ axs[1].set_xlabel("Input code")
 axs[1].grid()
 axs[0].set_title("Simulated nonlinearities")
 plt.show()
-
-
-# # Layout generation
-print('\nGenerating layout:')
-layout_dac(RESOLUTION, TOPOLOGY, layout_params, drc=1)
-

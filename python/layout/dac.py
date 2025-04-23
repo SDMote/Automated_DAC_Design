@@ -53,7 +53,7 @@ def layout_dac(N, type, params, drc=0):
         print(" Running DRC")
         subprocess.run("klayout -zz -r "+KLAYOUT_DRC+" -rd in_gds=\"../klayout/dac.gds\" -rd report_file=\"../klayout/drc/sg13g2_maximal.lyrdb\" >../klayout/drc/drc.log", shell=True, check=True)
     # Extract spice netlist from GDS
-    subprocess.run("magic -rcfile "+MAGICRC_PATH+" -noconsole -nowrapper ../magic/extract_dac.tcl > sim/temp.txt", shell=True, check=True)
+    subprocess.run("magic -rcfile "+MAGICRC_PATH+" -dnull -noconsole -nowrapper ../magic/extract_dac.tcl > sim/temp.txt", shell=True, check=True)
     # Perform LVS
     print(" Running LVS")
     subprocess.run("netgen -batch lvs \"../magic/dac.spice dac\" \"sim/dac.spice dac\" "+NETGEN_SETUP+" ../netgen/comp.out > sim/temp.txt", shell=True, check=True)

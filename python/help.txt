@@ -1,5 +1,4 @@
-The design_dac function accepts user input specifications as a dictionary. 
-The dictionary can be created by defining constants in specs.py and using the function load_specs() or directly with the following key names:
+The design_dac function accepts user input specifications as a dictionary with the following key names:
 
 input_specs = {'resolution':RESOLUTION, 'topology':TOPOLOGY, 'max_nl':MAX_NL, 'max_time':MAX_TIME, 'c_load':C_LOAD, 'poly_w':POLY_W, 'options':options}
 
@@ -18,3 +17,5 @@ The content of the options dictionary is as follows:
 	- 'ideal_width':IDEAL_WIDTH	1 to use ideal ratio for PMOS and NMOS on-resistances, or 0 to use equall on-resistances for both devices
 	- 'res_number':RES_NUMBER	Number of series devices that make the unit resistor (currently supported: 2)
 
+Alternatively, the dictionary can be created by defining constants in specs.py and using the function load_specs(). 
+In Google Colab, after editing specs.py it is necessary to reset the sesión and execute again the cells that set environment variables.
