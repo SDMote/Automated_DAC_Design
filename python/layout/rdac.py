@@ -98,5 +98,5 @@ def layout_rdac(N, Wn, Wp, Ng, Lr, Nr, Wbit, Wpoly):
 
     ## Save GDS
     print(" Writing RDAC GDS")
-    layout.write("../klayout/dac.gds")
+    layout.write(LAYOUT_PATH + "/dac.gds")
     return
