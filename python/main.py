@@ -27,7 +27,7 @@ from layout.dac import layout_dac
 POLY_W = 300 
 RES_NUMBER = 2
 options = {'ideal_width':IDEAL_WIDTH, 'res_number':RES_NUMBER}  # topology-dependent specifications for R2R-ladder DAC
-input_specs = {'resolution':RESOLUTION, 'topology':TOPOLOGY, 'max_nl':MAX_NL, 'max_time':MAX_TIME, 'c_load':C_LOAD, 'poly_w':POLY_W, 'options':options}
+input_specs = {'topology':TOPOLOGY, 'resolution':RESOLUTION, 'max_nl':MAX_NL, 'max_time':MAX_TIME, 'c_load':C_LOAD, 'poly_w':POLY_W, 'options':options}
 # input_specs = load_specs()    # to use values from specs.py
 
 # Design circuit
@@ -37,7 +37,7 @@ spice_params, layout_params = design_dac(**input_specs)
 
 # Simulate full circuit
 print('\nTop-level simulation:')
-inl, dnl, rise_time = simulate_dac(RESOLUTION, TOPOLOGY, spice_params, C_LOAD)
+inl, dnl, rise_time = simulate_dac(TOPOLOGY, spice_params, C_LOAD)
 Q = 2**RESOLUTION
 lsb = pdk.LOW_VOLTAGE/Q
 digital_input = np.arange(Q)
@@ -45,7 +45,7 @@ digital_input = np.arange(Q)
 
 # # Layout generation
 print('\nGenerating layout:')
-layout_dac(RESOLUTION, TOPOLOGY, layout_params, drc=1)
+layout_dac(TOPOLOGY, layout_params, drc=1)
 
 
 # Plot nonlinearities

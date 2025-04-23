@@ -9,12 +9,12 @@ import pdk
 from spice.rdac import rdac
 
 
-def dac(N: int, topology, params):
+def dac(topology, params):
     match topology:
         case 0:
-            rdac(N, type=0, **params)
+            rdac(type=0, **params)
         case 1:
-            rdac(N, type=1, **params)
+            rdac(type=1, **params)
         case _:
             print("Error")
     return

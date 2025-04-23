@@ -44,12 +44,12 @@ def load_specs():
         print("Error")
 
     # topology-independent specs from specs.py
-    input_specs = {'resolution':RESOLUTION, 'topology':TOPOLOGY, 'max_nl':MAX_NL, 'max_time':MAX_TIME, 'c_load':C_LOAD, 'poly_w':POLY_W, 'options':options}
+    input_specs = {'topology':TOPOLOGY, 'resolution':RESOLUTION, 'max_nl':MAX_NL, 'max_time':MAX_TIME, 'c_load':C_LOAD, 'poly_w':POLY_W, 'options':options}
     print("Target max NL:", MAX_NL, "\tTarget max transition time:", MAX_TIME, "us, with load of", C_LOAD, "pF")
     return input_specs
 
 
-def design_dac(resolution, topology, max_nl, max_time, c_load, poly_w, options):
+def design_dac(topology, resolution, max_nl, max_time, c_load, poly_w, options):
     """General DAC design function.
     resolution: number of bits.
     topology: type of DAC circuit.
@@ -73,14 +73,12 @@ def design_dac(resolution, topology, max_nl, max_time, c_load, poly_w, options):
     return spice_params, layout_params
 
 
-def simulate_dac(N, type, params, c_load):
+def simulate_dac(type, params, c_load):
     """General DAC simulation function.
-    resolution: number of bits.
-    topology: type of DAC circuit.
-    params: dictionary with circuit sizing.
-    c_load: load capacitance for output transition time simulation (speed).
+    params: dictionary with circuit sizing and load value.
     return: nonlinearities and worst output transition time.
     """
+    N = params['N']
     Q = 2**N # number of codes
     if type == 0:     # R2R-ladder RDAC
         LSB = pdk.LOW_VOLTAGE/Q
@@ -88,7 +86,7 @@ def simulate_dac(N, type, params, c_load):
         LSB = pdk.LOW_VOLTAGE/(Q-1)
     else:
         print("Error")
-    dac(N, type, params)
+    dac(type, params)
     dac_tb(N)
     subprocess.run("openvaf sim/adc_model.va -o sim/adc_model.osdi", shell=True, check=True) 
     subprocess.run("ngspice -b sim/dac_tb.spice -o sim/dac.log > sim/temp.txt", shell=True, check=True) #!ngspice -b rdac.spice

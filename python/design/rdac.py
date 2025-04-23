@@ -247,7 +247,7 @@ def design_r2r_rdac(N, ideal_width, Nr, max_nl, target_R_th, poly_w):
     inl, dnl, _, R_th = estimate_r2rdac_nl(N, R, Rn, Rp)
     print(" With Wn=", um(Wn), " Wp=", um(Wp), " and NG=", fingers, ", then Rn=", Rn, "Rp=", Rp)
     print(" Estimate => INL: ", max(abs(inl)), " DNL: ", max(abs(dnl)), " R_th", R_th)
-    params = {'Wn':Wn, 'Wp':Wp, 'Ng':fingers, 'Lr':Lr, 'Nr':Nr}
+    params = {'N':N, 'Wn':Wn, 'Wp':Wp, 'Ng':fingers, 'Lr':Lr, 'Nr':Nr}
     return params, BIT_WIDTH
 
 

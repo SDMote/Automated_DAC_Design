@@ -10,7 +10,7 @@ from user import *
 from layout.rdac import layout_rdac
 
 
-def write_layout_params(N=4, type=0, Wn=300, Wp=300, Ng=1, Lr=pdk.RES_MIN_L, Nr=1, Wbit=3850, Wpoly=pdk.MOS_MIN_L):
+def write_layout_params(type=0, N=4, Wn=300, Wp=300, Ng=1, Lr=pdk.RES_MIN_L, Nr=1, Wbit=3850, Wpoly=pdk.MOS_MIN_L):
     """Generates python file with parameters for layout generation.
     N: bits of resolution.
     Wn: width of inverter NMOS.
@@ -38,10 +38,10 @@ def write_layout_params(N=4, type=0, Wn=300, Wp=300, Ng=1, Lr=pdk.RES_MIN_L, Nr=
     return
 
 
-def layout_dac(N, type, params, drc=0):
-    write_layout_params(N, type, **params)   # set layout generator parameters to match simulated circuit
+def layout_dac(type, params, drc=0):
+    write_layout_params(type, **params)   # set layout generator parameters to match simulated circuit
     if type == 0:
-        layout_rdac(N, **params) # call layout generation with klayout
+        layout_rdac(**params) # call layout generation with klayout
     elif type == 1:
         pass
     else:
