@@ -1,9 +1,5 @@
-*.svg
-*.png
-*.eps
 *.osdi
 *.log
-*.pdf
 *.zip
 *test*
 
