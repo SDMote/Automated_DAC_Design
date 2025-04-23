@@ -20,7 +20,7 @@ IDEAL_WIDTH = 1     # use ideal on-resistance ratio between NMOS and PMOS, else 
 import numpy as np
 import matplotlib.pyplot as plt
 import pdk
-from design.dac import design_dac, simulate_dac
+from design.dac import load_specs, design_dac, simulate_dac
 from layout.dac import layout_dac
 
 # Set dictionary with user input specifications
@@ -28,6 +28,7 @@ POLY_W = 300
 RES_NUMBER = 2
 options = {'ideal_width':IDEAL_WIDTH, 'res_number':RES_NUMBER}  # topology-dependent specifications for R2R-ladder DAC
 input_specs = {'resolution':RESOLUTION, 'topology':TOPOLOGY, 'max_nl':MAX_NL, 'max_time':MAX_TIME, 'c_load':C_LOAD, 'poly_w':POLY_W, 'options':options}
+# input_specs = load_specs()    # to use values from specs.py
 
 # Design circuit
 print('\nCircuit design:')

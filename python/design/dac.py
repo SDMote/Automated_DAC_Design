@@ -25,6 +25,7 @@ def load_specs():
     """Builds dictionary with user input specifications from spec.py file.
     return: input_specs dictionary.
     """
+    # TODO: check valid specs
     POLY_W = 300    # Not the gate width/lenght but the width of the inverter input. Not yet leveraged in the design flow
     # Set topology-dependant specifications in the options dictionary
     if TOPOLOGY == 0:   # R2R-ladder RDAC
