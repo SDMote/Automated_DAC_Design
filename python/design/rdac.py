@@ -72,6 +72,12 @@ def estimate_r2rdac_nl(N: int, R, Rn, Rp):
 
 
 def sim2bits (Wn, Wp, NF=1):
+    """Measures transistors approximatve on-resistances. Sets devices with (rounded to grid size) before simulating 2-bit RDAC.
+    Wn: NMOS width.
+    Wp: PMOS width.
+    NF: number of fingers.
+    return: NMOS on-resistance, PMOS on-resistance, NMOS width and PMOS width.
+    """
     # requires running dac() and dac_tb() first for resolution 2
     # works for both rdac topologies
     Wn, Wp = inverter(Wn, Wp, NGn=NF, NGp=NF) # editing the inverter is enough to update transistor widths
@@ -85,6 +91,13 @@ def sim2bits (Wn, Wp, NF=1):
 
 
 def set_ron_ratio(Wn, Wp, ratio, NF=1):
+    """Finds devices values to get specified on-resistances ratio.
+    Wn: NMOS width.
+    Wp: PMOS width.
+    ratio: target on-resistance ratio between NMOS and PMOS.
+    NF: number of fingers.
+    return: NMOS on-resistance, PMOS on-resistance, NMOS width and PMOS width.
+    """
     # requires running dac() and dac_tb() first for resolution 2
     # works for R2R-ladder rdac
     Wn = dbu(Wn)
@@ -124,7 +137,15 @@ def set_ron_ratio(Wn, Wp, ratio, NF=1):
     return Rn, Rp, Wn, Wp
 
 
-def design_r2r_rdac(N, ideal_width, Nr, max_nl, target_R_th, POLY_W):
+def design_r2r_rdac(N, ideal_width, Nr, max_nl, target_R_th, poly_w):
+    """Sizing of transistors and unit resistor of R2R-ladder DAC.
+    N: resolution.
+    ideal_width: ideal ratio between on-resistances (1) or equal on-resistances (0).
+    Nr: number of series resistance instances that make the unit resistance.
+    target_R_th: target output resistance (for speed).
+    poly_w: width of inverter input.
+    return: param dictionary with circuit sizing and width of each bit cell for layout.
+    """
     MIN_STEP = GRID/DBU
     # Estimate on-resistances ratio
     print("\nResistance estimation:")
@@ -189,7 +210,7 @@ def design_r2r_rdac(N, ideal_width, Nr, max_nl, target_R_th, POLY_W):
     subprocess.run("openvaf sim/adc_model.va -o sim/adc_model.osdi", shell=True, check=True) 
     Rn, Rp, Wn, Wp = set_ron_ratio(Wn, Wp, ratio)   # first approximation
     equivalent_inverter_width = 2 * max(Wp * Rp / target_Rp, Wn * Rn / target_Rn)
-    INVERTER_CONST_WIDTH = 2 * ( max(RHIa/2 + M1b, GATd+POLY_W/2, (NWc+NWd)/2, (300+PSDb+PSDc1)/2) + max(M1b, GATd + CNTd) + CNTd + CNTa + GATb/2 )
+    INVERTER_CONST_WIDTH = 2 * ( max(RHIa/2 + M1b, GATd+poly_w/2, (NWc+NWd)/2, (300+PSDb+PSDc1)/2) + max(M1b, GATd + CNTd) + CNTd + CNTa + GATb/2 )
     if Nr == 2:     # fixed width ladder layout 2
         BIT_WIDTH = 3960   
     else:                   # variable width ladder layout 1
@@ -231,6 +252,9 @@ def design_r2r_rdac(N, ideal_width, Nr, max_nl, target_R_th, POLY_W):
 
 
 def design_weighted_rdac(N, max_nl, target_R_th, POLY_W):
+
+    ###   WORK IN PROGRESS   ###
+
     MIN_STEP = GRID/DBU
     ratio = 1
 

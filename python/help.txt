@@ -1,11 +1,15 @@
-Set the TOPOLOGY constant to choose one of the supported topologies: 
-0: R2R-ladder DAC
+The design_dac function accepts user input specifications as a dictionary that is created by defining constants in specs.py and using the function load_specs().
 
-Set the constants for general specifications:
+First, set the constants for topology-independent specifications:
 - RESOLUTION:	Number of bits of resolution (2-16 bits)
 - MAX_NL:	Target maximum nonlinearity (LSB), for both Integral Non-Linearity (INL) and Differential Non-Linearity (DNL)
+- MAX_TIME:	Target maximum transition time (microseconds) for the load specified in C_LOAD
+- C_LOAD:	Capacitive load (picofarad) considered for the speed of the DAC.
 
-Set the constants for topology-dependent specifications:
+Then, set the TOPOLOGY constant to choose one of the supported topologies: 
+  0: R2R-ladder DAC
+
+Finally, set the constants for topology-dependent specifications:
 - R2R-ladder:
 	- IDEAL_WIDTH: 1 to use ideal ratio for PMOS and NMOS on-resistances, or 0 to use equall on-resistances for both devices
-	- RES_NUMBER
+

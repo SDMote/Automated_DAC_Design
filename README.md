@@ -3,7 +3,7 @@
 Python script for automated DAC design and implementation using open-source tools.
 
 Go to `python` directory before running anything.
-Set specifications in `specs.py`. More information about the supported topologies and specifications in `help.txt`.
+Set specifications directly in `main.py`. Alternatively, set specifications in `specs.py` and use function `load_specs()`. More information about the supported topologies and specifications in `help.txt`.
 
 
 
